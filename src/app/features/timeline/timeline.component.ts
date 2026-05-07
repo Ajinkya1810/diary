@@ -50,6 +50,14 @@ export class TimelineComponent implements OnInit {
     return text.slice(0, 120);
   }
 
+  dayNum(date: string): string {
+    return String(new Date(date + 'T12:00:00').getDate()).padStart(2, '0');
+  }
+
+  dayName(date: string): string {
+    return new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
+  }
+
   openEntry(id: string) {
     this.router.navigate(['/entry', id]);
   }

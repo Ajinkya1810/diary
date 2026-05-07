@@ -11,6 +11,7 @@
       <div class="meta">
         <span class="date">{{ e.date | date:'EEEE, MMMM d, y' }}</span>
         @if (moodEmoji(e.mood)) {
+          <span class="dot"></span>
           <span class="mood">{{ moodEmoji(e.mood) }}</span>
         }
       </div>

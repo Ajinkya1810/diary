@@ -1,9 +1,8 @@
 .edit-page {
   min-height: 100dvh;
-  background: #0f0f0f;
-  color: #f5f5f5;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  padding-bottom: 40px;
+  background: var(--bg);
+  color: var(--text);
+  padding-bottom: 60px;
 }
 
 .top-bar {
@@ -11,99 +10,116 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  background: #0f0f0f;
+  background: var(--bg);
   z-index: 10;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .page-title {
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-2);
 }
 
 .btn-ghost {
   background: none;
   border: none;
-  color: #888;
-  font-size: 1rem;
+  color: var(--text-2);
+  font-size: 0.9375rem;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 6px 0;
+  min-width: 60px;
 }
 
 .btn-save {
-  background: #f5f5f5;
-  color: #0f0f0f;
+  background: var(--accent);
+  color: #1a1208;
   border: none;
-  border-radius: 6px;
-  padding: 6px 16px;
+  border-radius: 20px;
+  padding: 7px 18px;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  transition: opacity 0.15s;
+  min-width: 60px;
 
-  &:disabled { opacity: 0.5; }
+  &:disabled { opacity: 0.4; }
 }
 
 .form-body {
-  padding: 16px;
+  padding: 20px 20px 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .title-input {
   width: 100%;
   background: none;
   border: none;
-  border-bottom: 1px solid #333;
-  color: #f5f5f5;
-  font-size: 1.375rem;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 1.5rem;
   font-weight: 600;
-  padding: 4px 0 8px;
+  letter-spacing: -0.03em;
+  padding: 0 0 8px;
   outline: none;
-  box-sizing: border-box;
+  border-bottom: 1px solid var(--border);
 
-  &::placeholder { color: #444; }
+  &::placeholder { color: var(--text-3); }
 }
 
 .date-input {
-  background: #1a1a1a;
-  border: 1px solid #333;
-  border-radius: 6px;
-  color: #f5f5f5;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-2);
+  font-family: var(--font-ui);
   font-size: 0.875rem;
   padding: 8px 12px;
   outline: none;
   width: fit-content;
+
+  &:focus { border-color: var(--accent); color: var(--text); }
 }
 
 .mood-row {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mood-btn {
-  background: #1a1a1a;
-  border: 2px solid transparent;
-  border-radius: 8px;
-  font-size: 1.5rem;
-  padding: 6px;
+  background: var(--surface);
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  font-size: 1.375rem;
+  padding: 7px 9px;
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, transform 0.1s;
 
-  &.selected { border-color: #f5f5f5; }
-  &:active { transform: scale(0.9); }
+  &.selected {
+    border-color: var(--accent);
+    background: var(--surface-2);
+  }
+
+  &:active { transform: scale(0.88); }
 }
 
 .btn-delete {
-  margin-top: 24px;
+  margin-top: 32px;
   background: none;
-  border: 1px solid #c0392b;
-  color: #e74c3c;
-  border-radius: 8px;
-  padding: 12px;
+  border: 1px solid var(--border);
+  color: var(--danger);
+  border-radius: 10px;
+  padding: 13px;
   font-size: 0.875rem;
   cursor: pointer;
   width: 100%;
+  transition: border-color 0.15s;
+
+  &:hover { border-color: var(--danger); }
 }
