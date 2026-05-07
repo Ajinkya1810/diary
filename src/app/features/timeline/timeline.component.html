@@ -1,0 +1,38 @@
+<div class="timeline-page">
+  <header class="top-bar">
+    <h1>Diary</h1>
+  </header>
+
+  @if (loading()) {
+    <div class="empty-state">Loading…</div>
+  } @else if (groups().length === 0) {
+    <div class="empty-state">
+      <p>No entries yet.</p>
+      <p class="sub">Tap + to write your first entry.</p>
+    </div>
+  } @else {
+    <div class="groups">
+      @for (group of groups(); track group.label) {
+        <div class="month-group">
+          <div class="month-header">{{ group.label }}</div>
+          @for (entry of group.entries; track entry.id) {
+            <div class="entry-row" (click)="openEntry(entry.id)">
+              <div class="entry-meta">
+                <span class="entry-date">{{ entry.date | date:'d MMM' }}</span>
+                @if (moodEmoji(entry.mood)) {
+                  <span class="mood">{{ moodEmoji(entry.mood) }}</span>
+                }
+              </div>
+              <div class="entry-title">{{ entry.title || 'Untitled' }}</div>
+              @if (entry.bodyText) {
+                <div class="entry-preview">{{ preview(entry.bodyText) }}</div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <button class="fab" (click)="newEntry()" aria-label="New entry">+</button>
+</div>

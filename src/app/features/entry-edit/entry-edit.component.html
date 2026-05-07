@@ -1,0 +1,47 @@
+<div class="edit-page">
+  <header class="top-bar">
+    <button class="btn-ghost" (click)="cancel()">Cancel</button>
+    <span class="page-title">{{ isEdit ? 'Edit' : 'New Entry' }}</span>
+    <button class="btn-save" (click)="save()" [disabled]="saving()">
+      {{ saving() ? '…' : 'Save' }}
+    </button>
+  </header>
+
+  <div class="form-body">
+    <input
+      class="title-input"
+      type="text"
+      placeholder="Title"
+      [(ngModel)]="title"
+      autocomplete="off"
+    />
+
+    <input
+      class="date-input"
+      type="date"
+      [(ngModel)]="date"
+      [max]="todayStr()"
+    />
+
+    <div class="mood-row">
+      @for (m of moods; track m) {
+        <button
+          type="button"
+          class="mood-btn"
+          [class.selected]="mood === m"
+          (click)="setMood(m)"
+        >{{ moodEmoji[m] }}</button>
+      }
+    </div>
+
+    <app-editor
+      [initialHtml]="bodyHtml"
+      (htmlChange)="onHtmlChange($event)"
+      (textChange)="onTextChange($event)"
+    />
+
+    @if (isEdit) {
+      <button class="btn-delete" (click)="deleteEntry()">Delete Entry</button>
+    }
+  </div>
+</div>

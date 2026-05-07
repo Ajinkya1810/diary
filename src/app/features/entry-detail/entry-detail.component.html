@@ -1,0 +1,23 @@
+<div class="detail-page">
+  <header class="top-bar">
+    <button class="btn-ghost" (click)="back()">← Back</button>
+    @if (entry()) {
+      <button class="btn-edit" (click)="edit()">Edit</button>
+    }
+  </header>
+
+  @if (entry(); as e) {
+    <div class="content">
+      <div class="meta">
+        <span class="date">{{ e.date | date:'EEEE, MMMM d, y' }}</span>
+        @if (moodEmoji(e.mood)) {
+          <span class="mood">{{ moodEmoji(e.mood) }}</span>
+        }
+      </div>
+      <h1 class="title">{{ e.title || 'Untitled' }}</h1>
+      <div class="body" [innerHTML]="safeHtml()"></div>
+    </div>
+  } @else {
+    <div class="empty-state">Entry not found.</div>
+  }
+</div>
