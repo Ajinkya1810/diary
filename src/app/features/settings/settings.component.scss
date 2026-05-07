@@ -2,6 +2,7 @@
   min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
+  padding-bottom: 60px;
 }
 
 .top-bar {
@@ -38,8 +39,18 @@
   color: var(--text-3);
 }
 
+.error-banner {
+  background: #2a0a0a;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  padding: 10px 16px;
+  border-bottom: 1px solid #3a1010;
+}
+
 .section {
   padding: 24px 20px;
+  border-bottom: 1px solid var(--border);
+  &:last-child { border-bottom: none; }
 }
 
 .section-label {
@@ -48,9 +59,67 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--accent-2);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
+/* ── Backup actions ── */
+.action-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  &:last-child { border-bottom: none; }
+}
+
+.action-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.action-title {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.action-desc {
+  font-size: 0.75rem;
+  color: var(--text-3);
+  line-height: 1.4;
+}
+
+.btn-action {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-2);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  min-width: 64px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
+
+  &:not(:disabled):hover {
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+    box-shadow: 0 0 10px rgba(0,245,255,0.2);
+  }
+  &:disabled, &.disabled { opacity: 0.4; cursor: default; }
+
+  input { display: none; }
+}
+
+/* ── Tags ── */
 .add-row {
   display: flex;
   gap: 10px;

@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Tag } from '../../core/db/db.service';
 import { TagService } from '../../core/tag/tag.service';
+import { ExportService } from '../../core/export/export.service';
+
+type ActionState = 'idle' | 'busy' | 'done' | 'error';
 
 @Component({
   selector: 'app-settings',
@@ -18,7 +21,16 @@ export class SettingsComponent implements OnInit {
   editingId = signal<string | null>(null);
   editingName = '';
 
-  constructor(private tagSvc: TagService, private router: Router) {}
+  backupState = signal<ActionState>('idle');
+  importState = signal<ActionState>('idle');
+  pdfState = signal<ActionState>('idle');
+  errorMsg = signal('');
+
+  constructor(
+    private tagSvc: TagService,
+    private exportSvc: ExportService,
+    private router: Router,
+  ) {}
 
   async ngOnInit() { await this.reload(); }
 
@@ -46,6 +58,49 @@ export class SettingsComponent implements OnInit {
     if (!confirm('Delete tag? It will be removed from all entries.')) return;
     await this.tagSvc.delete(id);
     await this.reload();
+  }
+
+  async exportBackup() {
+    this.backupState.set('busy');
+    this.errorMsg.set('');
+    try {
+      await this.exportSvc.exportBackup();
+      this.backupState.set('done');
+      setTimeout(() => this.backupState.set('idle'), 3000);
+    } catch (e: any) {
+      this.errorMsg.set(e.message ?? 'Export failed.');
+      this.backupState.set('error');
+    }
+  }
+
+  async onImportFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    if (!confirm('Import backup? This will REPLACE all current data and lock the app. Continue?')) return;
+    this.importState.set('busy');
+    this.errorMsg.set('');
+    try {
+      await this.exportSvc.importBackup(file);
+      // vault.lock() navigates to /lock — no further code runs
+    } catch (e: any) {
+      this.errorMsg.set(e.message ?? 'Import failed.');
+      this.importState.set('error');
+    }
+  }
+
+  async exportPdf() {
+    this.pdfState.set('busy');
+    this.errorMsg.set('');
+    try {
+      await this.exportSvc.exportPdf();
+      this.pdfState.set('done');
+      setTimeout(() => this.pdfState.set('idle'), 3000);
+    } catch (e: any) {
+      this.errorMsg.set(e.message ?? 'PDF export failed.');
+      this.pdfState.set('error');
+    }
   }
 
   back() { this.router.navigate(['/timeline']); }

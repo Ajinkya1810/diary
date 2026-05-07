@@ -5,6 +5,64 @@
     <span class="top-spacer"></span>
   </header>
 
+  @if (errorMsg()) {
+    <div class="error-banner">⚠ {{ errorMsg() }}</div>
+  }
+
+  <!-- Backup & Export -->
+  <div class="section">
+    <div class="section-label">Backup &amp; Export</div>
+
+    <div class="action-row">
+      <div class="action-info">
+        <span class="action-title">Encrypted Backup</span>
+        <span class="action-desc">Downloads all entries + media as .diarybackup file. Requires same passcode to restore.</span>
+      </div>
+      <button class="btn-action"
+        [disabled]="backupState() === 'busy'"
+        (click)="exportBackup()">
+        @switch (backupState()) {
+          @case ('busy') { … }
+          @case ('done') { ✓ Saved }
+          @default { Export }
+        }
+      </button>
+    </div>
+
+    <div class="action-row">
+      <div class="action-info">
+        <span class="action-title">Restore Backup</span>
+        <span class="action-desc">Replaces all data with a .diarybackup file. App will lock — re-enter your passcode.</span>
+      </div>
+      <label class="btn-action" [class.disabled]="importState() === 'busy'">
+        @switch (importState()) {
+          @case ('busy') { … }
+          @case ('done') { ✓ Done }
+          @default { Import }
+        }
+        <input type="file" accept=".diarybackup,application/json" hidden
+          (change)="onImportFile($event)" [disabled]="importState() === 'busy'" />
+      </label>
+    </div>
+
+    <div class="action-row">
+      <div class="action-info">
+        <span class="action-title">Export PDF</span>
+        <span class="action-desc">Saves all entries as a readable PDF. No images included.</span>
+      </div>
+      <button class="btn-action"
+        [disabled]="pdfState() === 'busy'"
+        (click)="exportPdf()">
+        @switch (pdfState()) {
+          @case ('busy') { … }
+          @case ('done') { ✓ Saved }
+          @default { PDF }
+        }
+      </button>
+    </div>
+  </div>
+
+  <!-- Tags -->
   <div class="section">
     <div class="section-label">Tags</div>
 
