@@ -25,9 +25,11 @@
       }
     </div>
 
-    <app-editor [initialHtml]="bodyHtml"
-      (htmlChange)="onHtmlChange($event)"
-      (textChange)="onTextChange($event)" />
+    @if (loaded()) {
+      <app-editor [initialHtml]="bodyHtml"
+        (htmlChange)="onHtmlChange($event)"
+        (textChange)="onTextChange($event)" />
+    }
 
     <!-- tag section -->
     <div class="tag-section">

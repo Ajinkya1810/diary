@@ -22,6 +22,7 @@ interface PendingMedia { file: File; previewUrl: string; type: 'image' | 'video'
 export class EntryEditComponent implements OnInit, OnDestroy {
   isEdit = false;
   entryId: string | null = null;
+  loaded = signal(false);
   saving = signal(false);
   mediaError = signal('');
   quotaWarning = signal('');
@@ -80,6 +81,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
         }
       }
     }
+    this.loaded.set(true);
     this.checkQuota();
   }
 
