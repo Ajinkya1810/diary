@@ -1,16 +1,13 @@
 import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
-import { DbService, Entry, MediaRecord } from '../../core/db/db.service';
+import { Entry, MediaRecord } from '../../core/db/db.service';
+import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
-
-interface LoadedMedia {
-  record: MediaRecord;
-  url: string;
-}
+interface LoadedMedia { record: MediaRecord; url: string; }
 
 @Component({
   selector: 'app-entry-detail',
@@ -24,11 +21,10 @@ export class EntryDetailComponent implements OnInit, OnDestroy {
   safeHtml = signal<SafeHtml>('');
   media = signal<LoadedMedia[]>([]);
   lightboxUrl = signal<string | null>(null);
-
   private objectUrls: string[] = [];
 
   constructor(
-    private db: DbService,
+    private entrySvc: EntryService,
     private mediaSvc: MediaService,
     private router: Router,
     private route: ActivatedRoute,
@@ -37,7 +33,7 @@ export class EntryDetailComponent implements OnInit, OnDestroy {
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;
-    const entry = await this.db.entries.get(id);
+    const entry = await this.entrySvc.get(id);
     if (entry) {
       this.entry.set(entry);
       this.safeHtml.set(this.sanitizer.bypassSecurityTrustHtml(entry.bodyHtml));
@@ -45,9 +41,7 @@ export class EntryDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy() {
-    this.objectUrls.forEach(u => URL.revokeObjectURL(u));
-  }
+  ngOnDestroy() { this.objectUrls.forEach(u => URL.revokeObjectURL(u)); }
 
   private async loadMedia(entryId: string) {
     const records = await this.mediaSvc.getEntryMedia(entryId);
@@ -58,18 +52,14 @@ export class EntryDetailComponent implements OnInit, OnDestroy {
         const url = URL.createObjectURL(blob);
         this.objectUrls.push(url);
         loaded.push({ record, url });
-      } catch { /* skip missing blobs */ }
+      } catch { /* skip missing */ }
     }
     this.media.set(loaded);
   }
 
   openLightbox(url: string) { this.lightboxUrl.set(url); }
   closeLightbox() { this.lightboxUrl.set(null); }
-
-  moodEmoji(mood: number | null): string {
-    return mood ? MOOD_EMOJI[mood] ?? '' : '';
-  }
-
+  moodEmoji(mood: number | null): string { return mood ? MOOD_EMOJI[mood] ?? '' : ''; }
   edit() { this.router.navigate(['/entry', this.entry()!.id, 'edit']); }
   back() { this.router.navigate(['/timeline']); }
 }

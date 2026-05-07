@@ -49,7 +49,7 @@
       <div class="thumb-grid">
         @for (m of existingMedia; track m.id) {
           <div class="thumb-item">
-            <img [src]="thumbnailUrl(m)" alt="" />
+            <img [src]="thumbFor(m.id)" alt="" />
             @if (m.type === 'video') {
               <span class="video-badge">▶</span>
             }

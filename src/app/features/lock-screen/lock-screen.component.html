@@ -1,0 +1,52 @@
+<div class="lock-page">
+  @if (mode() === 'loading') {
+    <div class="spinner">…</div>
+  }
+
+  @if (mode() === 'setup') {
+    <div class="lock-card">
+      <div class="lock-icon">🔐</div>
+      <h1>Set Your Passcode</h1>
+      <p class="subtitle">You will need this to open your diary.</p>
+
+      <div class="warning-box">
+        <p><strong>⚠ Read this before continuing</strong></p>
+        <p>If you forget your passcode, <strong>all your entries and media are permanently lost.</strong> There is no recovery option. No reset. No backdoor.</p>
+        <p>Note: existing test data will be cleared when you set up encryption.</p>
+        <label class="ack-label">
+          <input type="checkbox" [(ngModel)]="warningAcknowledged" />
+          I understand — forgotten passcode means data is gone forever.
+        </label>
+      </div>
+
+      <input class="passcode-input" type="password" placeholder="Passcode (min 6 chars)"
+        [(ngModel)]="passcode" autocomplete="new-password" (keyup.enter)="submit()" />
+      <input class="passcode-input" type="password" placeholder="Confirm passcode"
+        [(ngModel)]="confirm" autocomplete="new-password" (keyup.enter)="submit()" />
+
+      @if (error()) { <p class="error">{{ error() }}</p> }
+
+      <button class="btn-primary" (click)="submit()" [disabled]="busy()">
+        {{ busy() ? 'Setting up…' : 'Set Passcode' }}
+      </button>
+    </div>
+  }
+
+  @if (mode() === 'unlock') {
+    <div class="lock-card">
+      <div class="lock-icon">🔒</div>
+      <h1>Diary</h1>
+      <p class="subtitle">Enter your passcode to continue.</p>
+
+      <input class="passcode-input" type="password" placeholder="Passcode"
+        [(ngModel)]="passcode" autocomplete="current-password" (keyup.enter)="submit()"
+        autofocus />
+
+      @if (error()) { <p class="error">{{ error() }}</p> }
+
+      <button class="btn-primary" (click)="submit()" [disabled]="busy()">
+        {{ busy() ? 'Unlocking…' : 'Unlock' }}
+      </button>
+    </div>
+  }
+</div>

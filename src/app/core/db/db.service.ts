@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import Dexie, { Table } from 'dexie';
+import { EncryptedField } from '../crypto/crypto.service';
 
+// Plaintext shape — used throughout the UI
 export interface Entry {
   id: string;
   date: string;
@@ -12,6 +14,13 @@ export interface Entry {
   mediaIds: string[];
   createdAt: number;
   updatedAt: number;
+}
+
+// On-disk shape — encrypted text fields
+export interface StoredEntry extends Omit<Entry, 'title' | 'bodyHtml' | 'bodyText'> {
+  title: EncryptedField;
+  bodyHtml: EncryptedField;
+  bodyText: EncryptedField;
 }
 
 export interface Tag {
@@ -26,15 +35,23 @@ export interface MediaRecord {
   mimeType: string;
   sizeBytes: number;
   opfsPath: string;
-  thumbnailBlob: Blob;
+  thumbnailData: EncryptedField;
   createdAt: number;
+}
+
+export interface VaultMeta {
+  id: 'singleton';
+  salt: Uint8Array;
+  verifierIv: Uint8Array;
+  verifierCt: Uint8Array;
 }
 
 @Injectable({ providedIn: 'root' })
 export class DbService extends Dexie {
-  entries!: Table<Entry, string>;
+  entries!: Table<StoredEntry, string>;
   tags!: Table<Tag, string>;
   media!: Table<MediaRecord, string>;
+  vaultMeta!: Table<VaultMeta, string>;
 
   constructor() {
     super('diary');
@@ -46,10 +63,15 @@ export class DbService extends Dexie {
       entries: 'id, date, createdAt, updatedAt',
       tags: 'id, name',
       media: 'id, entryId, createdAt',
-    }).upgrade(tx => {
-      return tx.table('entries').toCollection().modify(entry => {
-        if (!entry.mediaIds) entry.mediaIds = [];
-      });
     });
+    this.version(3).stores({
+      entries: 'id, date, createdAt, updatedAt',
+      tags: 'id, name',
+      media: 'id, entryId, createdAt',
+      vaultMeta: 'id',
+    }).upgrade(tx =>
+      // Wipe plaintext data — incompatible with encrypted schema
+      Promise.all([tx.table('entries').clear(), tx.table('media').clear()])
+    );
   }
 }
