@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { DbService, StoredEntry, MediaRecord, Tag, VaultMeta } from '../db/db.service';
+import { jsPDF } from 'jspdf';
+import { DbService, StoredEntry, MediaRecord, Tag } from '../db/db.service';
 import { EncryptedField } from '../crypto/crypto.service';
 import { OpfsService } from '../media/opfs.service';
 import { VaultService } from '../vault/vault.service';
@@ -75,9 +76,10 @@ export class ExportService {
     };
 
     const date = new Date().toISOString().slice(0, 10);
-    this.triggerDownload(
-      new Blob([JSON.stringify(backup)], { type: 'application/json' }),
-      `diary-backup-${date}.diarybackup`,
+    const filename = `diary-backup-${date}.diarybackup`;
+    await this.shareOrDownload(
+      new Blob([JSON.stringify(backup)], { type: 'application/octet-stream' }),
+      filename,
     );
   }
 
@@ -85,13 +87,15 @@ export class ExportService {
     const backup: BackupV1 = JSON.parse(await file.text());
     if (backup.version !== 1) throw new Error('Unsupported backup version.');
 
-    // Restore DB
     await Promise.all([
       this.db.entries.clear(),
       this.db.media.clear(),
       this.db.tags.clear(),
       this.db.vaultMeta.clear(),
     ]);
+
+    // Clear OPFS media directory
+    await this.opfs.clearDir('media').catch(() => {});
 
     if (backup.vaultMeta) {
       const vm = backup.vaultMeta;
@@ -122,7 +126,6 @@ export class ExportService {
       await this.opfs.writeBlob(path, new Blob([b64ToU8(b64)]));
     }
 
-    // Lock so user re-authenticates with backup's passcode
     this.vault.lock();
   }
 
@@ -130,16 +133,15 @@ export class ExportService {
     const entries = await this.entrySvc.listAll();
     if (!entries.length) throw new Error('No entries to export.');
 
-    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-    const W = 190; // usable width (mm)
-    const ML = 10; const MR = 10; const MT = 15;
+    const W = 190;
+    const ML = 10; const MT = 15;
     let y = MT;
 
     const nextPage = () => { doc.addPage(); y = MT; };
     const checkY = (needed: number) => { if (y + needed > 287) nextPage(); };
 
-    // Cover
+    // Cover page
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(28);
     doc.setTextColor(40, 40, 40);
@@ -147,14 +149,16 @@ export class ExportService {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(120, 120, 120);
-    doc.text(`Exported ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 105, 142, { align: 'center' });
+    doc.text(
+      new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      105, 142, { align: 'center' },
+    );
     doc.text(`${entries.length} entr${entries.length === 1 ? 'y' : 'ies'}`, 105, 150, { align: 'center' });
 
     for (const entry of entries) {
       doc.addPage();
       y = MT;
 
-      // Date
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(100, 100, 100);
@@ -164,7 +168,6 @@ export class ExportService {
       doc.text(dateStr.toUpperCase(), ML, y);
       y += 7;
 
-      // Title
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(18);
       doc.setTextColor(20, 20, 20);
@@ -173,18 +176,15 @@ export class ExportService {
       doc.text(titleLines, ML, y);
       y += titleLines.length * 8 + 4;
 
-      // Divider
       doc.setDrawColor(200, 200, 200);
       doc.line(ML, y, ML + W, y);
       y += 6;
 
-      // Body text
       if (entry.bodyText.trim()) {
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11);
         doc.setTextColor(50, 50, 50);
-        const paragraphs = entry.bodyText.split(/\n+/);
-        for (const para of paragraphs) {
+        for (const para of entry.bodyText.split(/\n+/)) {
           if (!para.trim()) continue;
           const lines = doc.splitTextToSize(para, W);
           checkY(lines.length * 5.5 + 4);
@@ -195,16 +195,24 @@ export class ExportService {
     }
 
     const date = new Date().toISOString().slice(0, 10);
-    doc.save(`diary-${date}.pdf`);
+    const pdfBlob = doc.output('blob');
+    await this.shareOrDownload(pdfBlob, `diary-${date}.pdf`);
   }
 
-  private triggerDownload(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  // Web Share API on iOS (gesture-context-safe), <a> fallback on desktop
+  private async shareOrDownload(blob: Blob, filename: string): Promise<void> {
+    const file = new File([blob], filename, { type: blob.type });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: filename });
+    } else {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
   }
 }

@@ -22,6 +22,19 @@ export class OpfsService {
     await dir.removeEntry(name);
   }
 
+  async clearDir(dirPath: string): Promise<void> {
+    const parts = dirPath.split('/').filter(Boolean);
+    const root = await navigator.storage.getDirectory();
+    let dir: FileSystemDirectoryHandle = root;
+    for (const part of parts) {
+      dir = await dir.getDirectoryHandle(part, { create: false }).catch(() => null as any);
+      if (!dir) return;
+    }
+    const toRemove: string[] = [];
+    for await (const [name] of (dir as any).entries()) toRemove.push(name);
+    await Promise.all(toRemove.map(name => dir.removeEntry(name, { recursive: true }).catch(() => {})));
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await this.resolveFile(path, false);
