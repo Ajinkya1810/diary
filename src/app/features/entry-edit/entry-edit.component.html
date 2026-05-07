@@ -7,38 +7,68 @@
     </button>
   </header>
 
-  <div class="form-body">
-    <input
-      class="title-input"
-      type="text"
-      placeholder="Title"
-      [(ngModel)]="title"
-      autocomplete="off"
-    />
+  @if (quotaWarning()) {
+    <div class="quota-warn">⚠ {{ quotaWarning() }}</div>
+  }
 
-    <input
-      class="date-input"
-      type="date"
-      [(ngModel)]="date"
-      [max]="todayStr()"
-    />
+  <div class="form-body">
+    <input class="title-input" type="text" placeholder="Title"
+      [(ngModel)]="title" autocomplete="off" />
+
+    <input class="date-input" type="date" [(ngModel)]="date" [max]="todayStr()" />
 
     <div class="mood-row">
       @for (m of moods; track m) {
-        <button
-          type="button"
-          class="mood-btn"
-          [class.selected]="mood === m"
-          (click)="setMood(m)"
-        >{{ moodEmoji[m] }}</button>
+        <button type="button" class="mood-btn" [class.selected]="mood === m" (click)="setMood(m)">
+          {{ moodEmoji[m] }}
+        </button>
       }
     </div>
 
-    <app-editor
-      [initialHtml]="bodyHtml"
+    <app-editor [initialHtml]="bodyHtml"
       (htmlChange)="onHtmlChange($event)"
-      (textChange)="onTextChange($event)"
-    />
+      (textChange)="onTextChange($event)" />
+
+    <!-- media section -->
+    <div class="media-section">
+      <div class="media-actions">
+        <label class="media-btn">
+          <input type="file" accept="image/*,video/*" multiple hidden (change)="onFilePick($event)" />
+          ＋ Photo / Video
+        </label>
+        <label class="media-btn camera">
+          <input type="file" accept="image/*,video/*" capture="environment" hidden (change)="onFilePick($event)" />
+          📷 Camera
+        </label>
+      </div>
+
+      @if (mediaError()) {
+        <p class="media-error">{{ mediaError() }}</p>
+      }
+
+      <div class="thumb-grid">
+        @for (m of existingMedia; track m.id) {
+          <div class="thumb-item">
+            <img [src]="thumbnailUrl(m)" alt="" />
+            @if (m.type === 'video') {
+              <span class="video-badge">▶</span>
+            }
+            <button class="thumb-remove" (click)="removeExisting(m.id)">×</button>
+          </div>
+        }
+        @for (p of pendingMedia; track p.previewUrl; let i = $index) {
+          <div class="thumb-item pending">
+            @if (p.type === 'image') {
+              <img [src]="p.previewUrl" alt="" />
+            } @else {
+              <video [src]="p.previewUrl" muted playsinline></video>
+              <span class="video-badge">▶</span>
+            }
+            <button class="thumb-remove" (click)="removePending(i)">×</button>
+          </div>
+        }
+      </div>
+    </div>
 
     @if (isEdit) {
       <button class="btn-delete" (click)="deleteEntry()">Delete Entry</button>

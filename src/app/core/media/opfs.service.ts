@@ -1,0 +1,48 @@
+import { Injectable } from '@angular/core';
+
+@Injectable({ providedIn: 'root' })
+export class OpfsService {
+
+  async writeBlob(path: string, blob: Blob): Promise<void> {
+    const handle = await this.resolveFile(path, true);
+    const writable = await handle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+  }
+
+  async readBlob(path: string): Promise<Blob> {
+    const handle = await this.resolveFile(path, false);
+    return handle.getFile();
+  }
+
+  async deleteBlob(path: string): Promise<void> {
+    const parts = path.split('/');
+    const name = parts[parts.length - 1];
+    const dir = await this.resolveDir(parts.slice(0, -1), false);
+    await dir.removeEntry(name);
+  }
+
+  async exists(path: string): Promise<boolean> {
+    try {
+      await this.resolveFile(path, false);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async resolveFile(path: string, create: boolean): Promise<FileSystemFileHandle> {
+    const parts = path.split('/');
+    const dir = await this.resolveDir(parts.slice(0, -1), create);
+    return dir.getFileHandle(parts[parts.length - 1], { create });
+  }
+
+  private async resolveDir(parts: string[], create: boolean): Promise<FileSystemDirectoryHandle> {
+    const root = await navigator.storage.getDirectory();
+    let dir: FileSystemDirectoryHandle = root;
+    for (const part of parts) {
+      dir = await dir.getDirectoryHandle(part, { create });
+    }
+    return dir;
+  }
+}

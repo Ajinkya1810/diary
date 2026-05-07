@@ -4,9 +4,7 @@
   </header>
 
   @if (loading()) {
-    <div class="empty-state">
-      <p>Loading…</p>
-    </div>
+    <div class="empty-state"><p>Loading…</p></div>
   } @else if (groups().length === 0) {
     <div class="empty-state">
       <div class="icon">✦</div>
@@ -33,6 +31,13 @@
                 </div>
                 @if (entry.bodyText) {
                   <div class="entry-preview">{{ preview(entry.bodyText) }}</div>
+                }
+                @if (thumbsFor(entry.id).length > 0) {
+                  <div class="entry-thumbs">
+                    @for (url of thumbsFor(entry.id); track url) {
+                      <img class="entry-thumb" [src]="url" alt="" />
+                    }
+                  </div>
                 }
               </div>
             </div>

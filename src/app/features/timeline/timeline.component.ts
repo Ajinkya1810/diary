@@ -1,7 +1,8 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule, DatePipe } from '@angular/common';
 import { DbService, Entry } from '../../core/db/db.service';
+import { MediaService } from '../../core/media/media.service';
 
 interface MonthGroup {
   label: string;
@@ -17,16 +18,40 @@ const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4:
   templateUrl: './timeline.component.html',
   styleUrl: './timeline.component.scss',
 })
-export class TimelineComponent implements OnInit {
+export class TimelineComponent implements OnInit, OnDestroy {
   groups = signal<MonthGroup[]>([]);
   loading = signal(true);
+  thumbUrls = signal<Map<string, string[]>>(new Map());
 
-  constructor(private db: DbService, private router: Router) {}
+  private objectUrls: string[] = [];
+
+  constructor(private db: DbService, private mediaSvc: MediaService, private router: Router) {}
 
   async ngOnInit() {
     const all = await this.db.entries.orderBy('date').reverse().toArray();
     this.groups.set(this.groupByMonth(all));
     this.loading.set(false);
+    await this.loadThumbnails(all);
+  }
+
+  ngOnDestroy() {
+    this.objectUrls.forEach(u => URL.revokeObjectURL(u));
+  }
+
+  private async loadThumbnails(entries: Entry[]) {
+    const map = new Map<string, string[]>();
+    for (const entry of entries) {
+      if (!entry.mediaIds?.length) continue;
+      const records = await this.mediaSvc.getEntryMedia(entry.id);
+      const urls: string[] = [];
+      for (const r of records.slice(0, 3)) {
+        const url = URL.createObjectURL(r.thumbnailBlob);
+        this.objectUrls.push(url);
+        urls.push(url);
+      }
+      if (urls.length) map.set(entry.id, urls);
+    }
+    this.thumbUrls.set(map);
   }
 
   private groupByMonth(entries: Entry[]): MonthGroup[] {
@@ -40,6 +65,10 @@ export class TimelineComponent implements OnInit {
       map.get(label)!.push(e);
     }
     return Array.from(map.entries()).map(([label, entries]) => ({ label, entries }));
+  }
+
+  thumbsFor(entryId: string): string[] {
+    return this.thumbUrls().get(entryId) ?? [];
   }
 
   moodEmoji(mood: number | null): string {
@@ -58,11 +87,6 @@ export class TimelineComponent implements OnInit {
     return new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
   }
 
-  openEntry(id: string) {
-    this.router.navigate(['/entry', id]);
-  }
-
-  newEntry() {
-    this.router.navigate(['/entry', 'new']);
-  }
+  openEntry(id: string) { this.router.navigate(['/entry', id]); }
+  newEntry() { this.router.navigate(['/entry', 'new']); }
 }

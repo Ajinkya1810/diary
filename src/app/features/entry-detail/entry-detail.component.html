@@ -16,9 +16,29 @@
         }
       </div>
       <h1 class="title">{{ e.title || 'Untitled' }}</h1>
+
+      @if (media().length > 0) {
+        <div class="media-grid">
+          @for (m of media(); track m.record.id) {
+            @if (m.record.type === 'image') {
+              <img class="media-image" [src]="m.url" alt="" (click)="openLightbox(m.url)" />
+            } @else {
+              <video class="media-video" [src]="m.url" controls playsinline preload="metadata"></video>
+            }
+          }
+        </div>
+      }
+
       <div class="body" [innerHTML]="safeHtml()"></div>
     </div>
   } @else {
     <div class="empty-state">Entry not found.</div>
   }
 </div>
+
+@if (lightboxUrl()) {
+  <div class="lightbox" (click)="closeLightbox()">
+    <img [src]="lightboxUrl()!" alt="" (click)="$event.stopPropagation()" />
+    <button class="lightbox-close" (click)="closeLightbox()">×</button>
+  </div>
+}

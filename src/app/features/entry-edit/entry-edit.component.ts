@@ -1,11 +1,18 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { DbService, Entry } from '../../core/db/db.service';
+import { DbService, MediaRecord } from '../../core/db/db.service';
+import { MediaService } from '../../core/media/media.service';
 import { EditorComponent } from '../../shared/editor/editor.component';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
+
+interface PendingMedia {
+  file: File;
+  previewUrl: string;
+  type: 'image' | 'video';
+}
 
 @Component({
   selector: 'app-entry-edit',
@@ -14,10 +21,12 @@ const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4:
   templateUrl: './entry-edit.component.html',
   styleUrl: './entry-edit.component.scss',
 })
-export class EntryEditComponent implements OnInit {
+export class EntryEditComponent implements OnInit, OnDestroy {
   isEdit = false;
   entryId: string | null = null;
   saving = signal(false);
+  mediaError = signal('');
+  quotaWarning = signal('');
 
   title = '';
   date = this.todayStr();
@@ -27,7 +36,16 @@ export class EntryEditComponent implements OnInit {
   moods = [1, 2, 3, 4, 5];
   moodEmoji = MOOD_EMOJI;
 
-  constructor(private db: DbService, private router: Router, private route: ActivatedRoute) {}
+  existingMedia: MediaRecord[] = [];
+  removedMediaIds: string[] = [];
+  pendingMedia: PendingMedia[] = [];
+
+  constructor(
+    private db: DbService,
+    private mediaSvc: MediaService,
+    private router: Router,
+    private route: ActivatedRoute,
+  ) {}
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
@@ -41,8 +59,14 @@ export class EntryEditComponent implements OnInit {
         this.bodyHtml = entry.bodyHtml;
         this.bodyText = entry.bodyText;
         this.mood = entry.mood;
+        this.existingMedia = await this.mediaSvc.getEntryMedia(id);
       }
     }
+    this.checkQuota();
+  }
+
+  ngOnDestroy() {
+    this.pendingMedia.forEach(p => URL.revokeObjectURL(p.previewUrl));
   }
 
   todayStr(): string {
@@ -53,48 +77,105 @@ export class EntryEditComponent implements OnInit {
   onTextChange(text: string) { this.bodyText = text; }
   setMood(m: number) { this.mood = this.mood === m ? null : m; }
 
+  async onFilePick(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    input.value = '';
+    this.mediaError.set('');
+    for (const file of files) {
+      await this.addPending(file);
+    }
+  }
+
+  private async addPending(file: File) {
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) {
+      this.mediaError.set('Only images and videos are supported.');
+      return;
+    }
+    if (isVideo && file.size > 50 * 1024 * 1024) {
+      this.mediaError.set('Video must be under 50 MB.');
+      return;
+    }
+    const previewUrl = URL.createObjectURL(file);
+    this.pendingMedia = [...this.pendingMedia, { file, previewUrl, type: isImage ? 'image' : 'video' }];
+  }
+
+  removePending(index: number) {
+    URL.revokeObjectURL(this.pendingMedia[index].previewUrl);
+    this.pendingMedia = this.pendingMedia.filter((_, i) => i !== index);
+  }
+
+  removeExisting(id: string) {
+    this.removedMediaIds.push(id);
+    this.existingMedia = this.existingMedia.filter(m => m.id !== id);
+  }
+
+  thumbnailUrl(record: MediaRecord): string {
+    return URL.createObjectURL(record.thumbnailBlob);
+  }
+
   async save() {
     this.saving.set(true);
+    this.mediaError.set('');
     const now = Date.now();
-    if (this.isEdit && this.entryId) {
-      await this.db.entries.update(this.entryId, {
-        title: this.title,
-        date: this.date,
-        bodyHtml: this.bodyHtml,
-        bodyText: this.bodyText,
-        mood: this.mood,
-        updatedAt: now,
-      });
-      this.router.navigate(['/entry', this.entryId]);
-    } else {
-      const id = crypto.randomUUID();
-      await this.db.entries.add({
-        id,
-        title: this.title,
-        date: this.date,
-        bodyHtml: this.bodyHtml,
-        bodyText: this.bodyText,
-        mood: this.mood,
-        tagIds: [],
-        createdAt: now,
-        updatedAt: now,
-      });
-      this.router.navigate(['/entry', id]);
+    let entryId = this.entryId;
+
+    try {
+      if (this.isEdit && entryId) {
+        await this.db.entries.update(entryId, {
+          title: this.title, date: this.date,
+          bodyHtml: this.bodyHtml, bodyText: this.bodyText,
+          mood: this.mood, updatedAt: now,
+        });
+      } else {
+        entryId = crypto.randomUUID();
+        await this.db.entries.add({
+          id: entryId, title: this.title, date: this.date,
+          bodyHtml: this.bodyHtml, bodyText: this.bodyText,
+          mood: this.mood, tagIds: [], mediaIds: [],
+          createdAt: now, updatedAt: now,
+        });
+      }
+
+      for (const mid of this.removedMediaIds) {
+        const rec = await this.db.media.get(mid);
+        if (rec) await this.mediaSvc.deleteMedia(rec, entryId!);
+      }
+
+      for (const pending of this.pendingMedia) {
+        try {
+          await this.mediaSvc.addMedia(entryId!, pending.file);
+        } catch (e: any) {
+          this.mediaError.set(e.message ?? 'Failed to save media.');
+        }
+      }
+
+      this.router.navigate(['/entry', entryId]);
+    } catch {
+      this.saving.set(false);
     }
   }
 
   async deleteEntry() {
     if (!this.entryId) return;
     if (!confirm('Delete this entry? This cannot be undone.')) return;
+    const media = await this.mediaSvc.getEntryMedia(this.entryId);
+    for (const m of media) await this.mediaSvc.deleteMedia(m, this.entryId);
     await this.db.entries.delete(this.entryId);
     this.router.navigate(['/timeline']);
   }
 
   cancel() {
-    if (this.isEdit && this.entryId) {
-      this.router.navigate(['/entry', this.entryId]);
-    } else {
-      this.router.navigate(['/timeline']);
+    if (this.isEdit && this.entryId) this.router.navigate(['/entry', this.entryId]);
+    else this.router.navigate(['/timeline']);
+  }
+
+  private async checkQuota() {
+    const q = await this.mediaSvc.checkQuota();
+    if (q && q.pct >= 80) {
+      this.quotaWarning.set(`Storage ${q.pct}% full (${q.usedMb} MB / ${q.totalMb} MB). Consider backing up.`);
     }
   }
 }
