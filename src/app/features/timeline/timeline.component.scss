@@ -7,19 +7,21 @@
 .top-bar {
   position: sticky;
   top: 0;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.85);
+  border-bottom: 1px solid var(--accent);
   padding: 18px 20px 14px;
   z-index: 10;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 
   h1 {
     margin: 0;
     font-size: 1.25rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    color: var(--text);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: var(--glow-pink);
   }
 }
 
@@ -33,20 +35,24 @@
   text-align: center;
   padding: 0 40px;
 
-  .icon { font-size: 2.5rem; margin-bottom: 4px; opacity: 0.4; }
+  .icon {
+    font-size: 2.5rem;
+    margin-bottom: 4px;
+    filter: drop-shadow(0 0 8px var(--accent));
+  }
   p { margin: 0; color: var(--text-2); font-size: 0.9375rem; }
   .sub { color: var(--text-3); font-size: 0.8125rem; }
 }
 
-.month-group { margin-bottom: 8px; }
+.month-group { margin-bottom: 4px; }
 
 .month-header {
   padding: 24px 20px 6px;
   font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--accent-2);
   position: sticky;
   top: 57px;
   background: var(--bg);
@@ -57,7 +63,7 @@
   display: grid;
   grid-template-columns: 44px 1fr;
   gap: 0 14px;
-  padding: 12px 20px;
+  padding: 13px 20px;
   cursor: pointer;
   border-bottom: 1px solid var(--border);
   transition: background 0.1s;
@@ -112,7 +118,7 @@
 
 .entry-preview {
   font-size: 0.8125rem;
-  color: var(--text-2);
+  color: var(--text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -123,16 +129,16 @@
   position: fixed;
   bottom: 32px;
   right: 20px;
-  width: 52px;
-  height: 52px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   background: var(--accent);
-  color: #1a1208;
-  font-size: 1.625rem;
+  color: #000;
+  font-size: 1.75rem;
   font-weight: 300;
   border: none;
   cursor: pointer;
-  box-shadow: 0 4px 20px rgba(200, 169, 110, 0.35);
+  box-shadow: var(--glow-pink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,6 +147,6 @@
 
   &:active {
     transform: scale(0.92);
-    box-shadow: 0 2px 10px rgba(200, 169, 110, 0.2);
+    box-shadow: 0 0 6px rgba(255,45,120,0.4);
   }
 }

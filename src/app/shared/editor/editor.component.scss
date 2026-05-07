@@ -5,6 +5,12 @@
   border-radius: 12px;
   overflow: hidden;
   background: var(--surface);
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), var(--glow-pink);
+  }
 }
 
 .toolbar {
@@ -22,17 +28,21 @@
     border-radius: 6px;
     cursor: pointer;
     font-size: 0.8125rem;
-    font-weight: 500;
+    font-weight: 600;
     min-width: 34px;
     transition: background 0.1s, color 0.1s;
 
     &:hover { background: var(--surface-2); color: var(--text-2); }
-    &.active { background: var(--surface-2); color: var(--accent); }
+    &.active {
+      background: var(--surface-2);
+      color: var(--accent);
+      text-shadow: 0 0 8px rgba(255,45,120,0.8);
+    }
   }
 }
 
 .editor-content {
-  padding: 14px 16px;
+  padding: 16px;
   min-height: 220px;
   color: var(--text);
   font-family: var(--font-body);
@@ -50,18 +60,8 @@
       font-size: 1.125rem;
       font-weight: 600;
       margin: 1.25rem 0 0.4rem;
-      color: var(--text);
+      color: var(--accent);
     }
     ul, ol { padding-left: 1.25rem; margin: 0 0 0.9rem; }
-
-    &.ProseMirror-focused { outline: none; }
-
-    p.is-editor-empty:first-child::before {
-      content: attr(data-placeholder);
-      color: var(--text-3);
-      pointer-events: none;
-      float: left;
-      height: 0;
-    }
   }
 }
