@@ -32,11 +32,12 @@ export class EntryService {
     return id;
   }
 
-  async update(id: string, partial: Partial<Pick<Entry, 'title' | 'bodyHtml' | 'bodyText' | 'date' | 'mood' | 'updatedAt'>>): Promise<void> {
+  async update(id: string, partial: Partial<Pick<Entry, 'title' | 'bodyHtml' | 'bodyText' | 'date' | 'mood' | 'tagIds' | 'updatedAt'>>): Promise<void> {
     const key = this.vault.requireKey();
     const updates: Record<string, unknown> = {};
     if (partial.date !== undefined) updates['date'] = partial.date;
     if (partial.mood !== undefined) updates['mood'] = partial.mood;
+    if (partial.tagIds !== undefined) updates['tagIds'] = partial.tagIds;
     if (partial.updatedAt !== undefined) updates['updatedAt'] = partial.updatedAt;
     if (partial.title !== undefined) updates['title'] = await this.crypto.encryptString(key, partial.title);
     if (partial.bodyHtml !== undefined) updates['bodyHtml'] = await this.crypto.encryptString(key, partial.bodyHtml);

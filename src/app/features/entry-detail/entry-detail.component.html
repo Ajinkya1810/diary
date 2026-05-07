@@ -17,6 +17,14 @@
       </div>
       <h1 class="title">{{ e.title || 'Untitled' }}</h1>
 
+      @if (tags().length) {
+        <div class="tag-row">
+          @for (tag of tags(); track tag.id) {
+            <span class="tag-chip">{{ tag.name }}</span>
+          }
+        </div>
+      }
+
       @if (media().length > 0) {
         <div class="media-grid">
           @for (m of media(); track m.record.id) {
@@ -30,6 +38,8 @@
       }
 
       <div class="body" [innerHTML]="safeHtml()"></div>
+
+      <div class="edited-info">Edited {{ timeAgo(e.updatedAt) }}</div>
     </div>
   } @else {
     <div class="empty-state">Entry not found.</div>

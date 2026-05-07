@@ -1,46 +1,53 @@
 <div class="timeline-page">
   <header class="top-bar">
     <h1>Diary</h1>
+    <button class="btn-settings" (click)="settings()" aria-label="Settings">⚙</button>
   </header>
+
+  <div class="search-bar">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" type="search" placeholder="Search entries…"
+        [(ngModel)]="searchQuery" (input)="onSearchInput()" autocomplete="off" />
+      @if (searchQuery) {
+        <button class="search-clear" (click)="clearSearch()" aria-label="Clear">✕</button>
+      }
+    </div>
+  </div>
 
   @if (loading()) {
     <div class="empty-state"><p>Loading…</p></div>
+
+  } @else if (searchResults() !== null) {
+    @if (searchResults()!.length === 0) {
+      <div class="empty-state">
+        <div class="icon">◎</div>
+        <p>No results</p>
+        <p class="sub">Try a different word.</p>
+      </div>
+    } @else {
+      <div class="search-count">{{ searchResults()!.length }} result{{ searchResults()!.length === 1 ? '' : 's' }}</div>
+      <div class="groups">
+        @for (entry of searchResults()!; track entry.id) {
+          <ng-container *ngTemplateOutlet="entryRow; context: { $implicit: entry }"></ng-container>
+        }
+      </div>
+    }
+
   } @else if (groups().length === 0) {
     <div class="empty-state">
       <div class="icon">✦</div>
       <p>No entries yet</p>
       <p class="sub">Tap + to write your first.</p>
     </div>
+
   } @else {
     <div class="groups">
       @for (group of groups(); track group.label) {
         <div class="month-group">
           <div class="month-header">{{ group.label }}</div>
           @for (entry of group.entries; track entry.id) {
-            <div class="entry-row" (click)="openEntry(entry.id)">
-              <div class="entry-day">
-                <span class="day-num">{{ dayNum(entry.date) }}</span>
-                <span class="day-name">{{ dayName(entry.date) }}</span>
-              </div>
-              <div class="entry-body">
-                <div class="entry-top">
-                  <span class="entry-title">{{ entry.title || 'Untitled' }}</span>
-                  @if (moodEmoji(entry.mood)) {
-                    <span class="mood">{{ moodEmoji(entry.mood) }}</span>
-                  }
-                </div>
-                @if (entry.bodyText) {
-                  <div class="entry-preview">{{ preview(entry.bodyText) }}</div>
-                }
-                @if (thumbsFor(entry.id).length > 0) {
-                  <div class="entry-thumbs">
-                    @for (url of thumbsFor(entry.id); track url) {
-                      <img class="entry-thumb" [src]="url" alt="" />
-                    }
-                  </div>
-                }
-              </div>
-            </div>
+            <ng-container *ngTemplateOutlet="entryRow; context: { $implicit: entry }"></ng-container>
           }
         </div>
       }
@@ -49,3 +56,37 @@
 
   <button class="fab" (click)="newEntry()" aria-label="New entry">+</button>
 </div>
+
+<ng-template #entryRow let-entry>
+  <div class="entry-row" (click)="openEntry(entry.id)">
+    <div class="entry-day">
+      <span class="day-num">{{ dayNum(entry.date) }}</span>
+      <span class="day-name">{{ dayName(entry.date) }}</span>
+    </div>
+    <div class="entry-body">
+      <div class="entry-top">
+        <span class="entry-title">{{ entry.title || 'Untitled' }}</span>
+        @if (moodEmoji(entry.mood)) {
+          <span class="mood">{{ moodEmoji(entry.mood) }}</span>
+        }
+      </div>
+      @if (entry.bodyText) {
+        <div class="entry-preview">{{ preview(entry.bodyText) }}</div>
+      }
+      @if (tagsFor(entry).length) {
+        <div class="entry-tags">
+          @for (tag of tagsFor(entry).slice(0, 4); track tag.id) {
+            <span class="tag-chip">{{ tag.name }}</span>
+          }
+        </div>
+      }
+      @if (thumbsFor(entry.id).length > 0) {
+        <div class="entry-thumbs">
+          @for (url of thumbsFor(entry.id); track url) {
+            <img class="entry-thumb" [src]="url" alt="" />
+          }
+        </div>
+      }
+    </div>
+  </div>
+</ng-template>

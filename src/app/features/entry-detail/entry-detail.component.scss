@@ -70,6 +70,31 @@
   line-height: 1.15;
 }
 
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.tag-chip {
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.2);
+  color: var(--accent-2);
+  border-radius: 20px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  letter-spacing: 0.04em;
+}
+
+.edited-info {
+  margin-top: 32px;
+  font-size: 0.75rem;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+
 .media-grid {
   display: flex;
   flex-direction: column;

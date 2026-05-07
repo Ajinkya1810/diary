@@ -2,9 +2,10 @@ import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { MediaRecord } from '../../core/db/db.service';
+import { MediaRecord, Tag } from '../../core/db/db.service';
 import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
+import { TagService } from '../../core/tag/tag.service';
 import { EditorComponent } from '../../shared/editor/editor.component';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
@@ -33,6 +34,11 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   moods = [1, 2, 3, 4, 5];
   moodEmoji = MOOD_EMOJI;
 
+  allTags: Tag[] = [];
+  selectedTagIds = new Set<string>();
+  newTagName = '';
+  addingTag = false;
+
   existingMedia: MediaRecord[] = [];
   existingThumbUrls = new Map<string, string>();
   removedMediaIds: string[] = [];
@@ -42,12 +48,16 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   constructor(
     private entrySvc: EntryService,
     private mediaSvc: MediaService,
+    private tagSvc: TagService,
     private router: Router,
     private route: ActivatedRoute,
   ) {}
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id');
+    const [tags] = await Promise.all([this.tagSvc.listAll()]);
+    this.allTags = tags;
+
     if (id && id !== 'new') {
       this.isEdit = true;
       this.entryId = id;
@@ -58,6 +68,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
         this.bodyHtml = entry.bodyHtml;
         this.bodyText = entry.bodyText;
         this.mood = entry.mood;
+        this.selectedTagIds = new Set(entry.tagIds ?? []);
         this.existingMedia = await this.mediaSvc.getEntryMedia(id);
         for (const m of this.existingMedia) {
           try {
@@ -82,6 +93,22 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   onTextChange(text: string) { this.bodyText = text; }
   setMood(m: number) { this.mood = this.mood === m ? null : m; }
   thumbFor(id: string): string { return this.existingThumbUrls.get(id) ?? ''; }
+  isTagSelected(id: string): boolean { return this.selectedTagIds.has(id); }
+
+  toggleTag(id: string) {
+    if (this.selectedTagIds.has(id)) this.selectedTagIds.delete(id);
+    else this.selectedTagIds.add(id);
+  }
+
+  async createTag() {
+    const name = this.newTagName.trim();
+    if (!name) return;
+    const tag = await this.tagSvc.create(name);
+    this.allTags = [...this.allTags, tag].sort((a, b) => a.name.localeCompare(b.name));
+    this.selectedTagIds.add(tag.id);
+    this.newTagName = '';
+    this.addingTag = false;
+  }
 
   async onFilePick(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -114,19 +141,20 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     this.saving.set(true);
     this.mediaError.set('');
     const now = Date.now();
+    const tagIds = [...this.selectedTagIds];
     let entryId = this.entryId;
     try {
       if (this.isEdit && entryId) {
         await this.entrySvc.update(entryId, {
           title: this.title, date: this.date,
           bodyHtml: this.bodyHtml, bodyText: this.bodyText,
-          mood: this.mood, updatedAt: now,
+          mood: this.mood, tagIds, updatedAt: now,
         });
       } else {
         entryId = await this.entrySvc.add({
           title: this.title, date: this.date,
           bodyHtml: this.bodyHtml, bodyText: this.bodyText,
-          mood: this.mood, tagIds: [], mediaIds: [],
+          mood: this.mood, tagIds, mediaIds: [],
           createdAt: now, updatedAt: now,
         });
       }

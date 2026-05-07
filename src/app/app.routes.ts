@@ -32,4 +32,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/entry-detail/entry-detail.component').then(m => m.EntryDetailComponent),
   },
+  {
+    path: 'settings',
+    canActivate: [unlockedGuard],
+    loadComponent: () =>
+      import('./features/settings/settings.component').then(m => m.SettingsComponent),
+  },
 ];

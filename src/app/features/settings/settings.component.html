@@ -1,0 +1,40 @@
+<div class="settings-page">
+  <header class="top-bar">
+    <button class="btn-ghost" (click)="back()">← Back</button>
+    <span class="page-title">Settings</span>
+    <span class="top-spacer"></span>
+  </header>
+
+  <div class="section">
+    <div class="section-label">Tags</div>
+
+    <div class="add-row">
+      <input class="tag-input" type="text" placeholder="New tag…"
+        [(ngModel)]="newTagName" (keyup.enter)="addTag()" autocomplete="off" />
+      <button class="btn-add" (click)="addTag()" [disabled]="!newTagName.trim()">Add</button>
+    </div>
+
+    @if (tags().length === 0) {
+      <p class="empty">No tags yet. Add one above.</p>
+    }
+
+    <ul class="tag-list">
+      @for (tag of tags(); track tag.id) {
+        <li class="tag-item">
+          @if (editingId() === tag.id) {
+            <input class="tag-edit-input" [(ngModel)]="editingName"
+              (keyup.enter)="saveEdit(tag.id)" autocomplete="off" />
+            <button class="btn-icon confirm" (click)="saveEdit(tag.id)">✓</button>
+            <button class="btn-icon" (click)="cancelEdit()">✕</button>
+          } @else {
+            <span class="tag-name">{{ tag.name }}</span>
+            <div class="tag-actions">
+              <button class="btn-icon" (click)="startEdit(tag)" aria-label="Rename">✎</button>
+              <button class="btn-icon danger" (click)="deleteTag(tag.id)" aria-label="Delete">✕</button>
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  </div>
+</div>

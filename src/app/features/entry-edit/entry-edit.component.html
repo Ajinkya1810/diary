@@ -29,6 +29,28 @@
       (htmlChange)="onHtmlChange($event)"
       (textChange)="onTextChange($event)" />
 
+    <!-- tag section -->
+    <div class="tag-section">
+      <div class="tag-label">Tags</div>
+      <div class="tag-chips">
+        @for (tag of allTags; track tag.id) {
+          <button type="button" class="tag-chip" [class.selected]="isTagSelected(tag.id)"
+            (click)="toggleTag(tag.id)">{{ tag.name }}</button>
+        }
+        @if (!addingTag) {
+          <button type="button" class="tag-chip add-chip" (click)="addingTag = true">+ New tag</button>
+        }
+      </div>
+      @if (addingTag) {
+        <div class="tag-add-row">
+          <input class="tag-new-input" type="text" placeholder="Tag name…"
+            [(ngModel)]="newTagName" (keyup.enter)="createTag()" autocomplete="off" />
+          <button type="button" class="tag-add-btn" (click)="createTag()">Add</button>
+          <button type="button" class="tag-cancel-btn" (click)="addingTag = false; newTagName = ''">✕</button>
+        </div>
+      }
+    </div>
+
     <!-- media section -->
     <div class="media-section">
       <div class="media-actions">
