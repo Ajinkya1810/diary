@@ -331,6 +331,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.8.1 | 2026-05-08 | move: Help button into ThemeToggleComponent — ⓘ now renders next to ☀/🌙 in every header. Settings help link removed |
 | 1.8.2 | 2026-05-08 | feat: "Ajinkya" signature watermark fixed bottom-right on every screen (italic script font, 40% opacity, pointer-events none) |
 | 1.8.3 | 2026-05-08 | style: signature now pink neon glow, full opacity, pulsing text-shadow, z-index 999 so it stays visible above bottom-nav on every screen |
+| 1.8.4 | 2026-05-08 | style: prefix "made by" added before Ajinkya. Smaller sans-serif, lowercase, slightly muted; signature stays italic script with neon glow |
 
 ---
 

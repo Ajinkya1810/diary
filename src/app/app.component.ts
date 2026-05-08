@@ -18,7 +18,7 @@ import { ThemeService } from './core/theme/theme.service';
       </div>
     }
     <router-outlet />
-    <div class="signature" aria-hidden="true">Ajinkya</div>
+    <div class="signature" aria-hidden="true"><span class="sig-prefix">made by</span> Ajinkya</div>
   `,
   styleUrl: './app.component.scss',
 })

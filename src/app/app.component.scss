@@ -16,6 +16,19 @@
   letter-spacing: 0.04em;
   z-index: 999;
   user-select: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+
+  .sig-prefix {
+    font-family: var(--font-ui);
+    font-style: normal;
+    font-weight: 400;
+    font-size: 0.625rem;
+    text-transform: lowercase;
+    letter-spacing: 0.08em;
+    opacity: 0.85;
+  }
   text-shadow:
     0 0 4px #FF2D78,
     0 0 10px rgba(255,45,120,0.85),
