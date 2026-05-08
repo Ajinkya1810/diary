@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { Tag } from '../../core/db/db.service';
 import { TagService } from '../../core/tag/tag.service';
 import { ExportService } from '../../core/export/export.service';
+import { ThemeService, Theme } from '../../core/theme/theme.service';
 import { BUILD_LABEL } from '../../version';
 
 type ActionState = 'idle' | 'busy' | 'done' | 'error';
@@ -30,8 +31,11 @@ export class SettingsComponent implements OnInit {
   constructor(
     private tagSvc: TagService,
     private exportSvc: ExportService,
+    public themeSvc: ThemeService,
     private router: Router,
   ) {}
+
+  setTheme(t: Theme) { this.themeSvc.set(t); }
 
   async ngOnInit() { await this.reload(); }
 

@@ -1,6 +1,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { VaultService } from './core/vault/vault.service';
+import { ThemeService } from './core/theme/theme.service';
 
 @Component({
   selector: 'app-root',
@@ -19,7 +20,8 @@ export class AppComponent implements OnDestroy {
     }
   };
 
-  constructor(private vault: VaultService) {
+  constructor(private vault: VaultService, private theme: ThemeService) {
+    this.theme.applyInitial();
     document.addEventListener('visibilitychange', this.onVisibility);
   }
 

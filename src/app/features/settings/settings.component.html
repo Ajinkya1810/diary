@@ -9,6 +9,23 @@
     <div class="error-banner">⚠ {{ errorMsg() }}</div>
   }
 
+  <!-- Theme -->
+  <div class="section">
+    <div class="section-label">Theme</div>
+    <div class="theme-grid">
+      @for (t of themeSvc.themes(); track t.id) {
+        <button type="button" class="theme-card"
+          [class.selected]="themeSvc.current() === t.id"
+          [style.background]="t.bg"
+          [style.borderColor]="themeSvc.current() === t.id ? t.accent : 'transparent'"
+          (click)="setTheme(t.id)">
+          <span class="theme-swatch" [style.background]="t.accent"></span>
+          <span class="theme-name">{{ t.label }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
   <!-- Backup & Export -->
   <div class="section">
     <div class="section-label">Backup &amp; Export</div>
