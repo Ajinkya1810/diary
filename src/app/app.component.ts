@@ -4,6 +4,7 @@ import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
 import { filter } from 'rxjs';
 import { VaultService } from './core/vault/vault.service';
 import { ThemeService } from './core/theme/theme.service';
+import { HapticService } from './core/haptic/haptic.service';
 
 @Component({
   selector: 'app-root',
@@ -33,9 +34,24 @@ export class AppComponent implements OnDestroy {
     }
   };
 
-  constructor(private vault: VaultService, private theme: ThemeService, private swUpdate: SwUpdate) {
+  private readonly onGlobalClick = (e: Event) => {
+    const target = e.target as Element | null;
+    if (!target) return;
+    const interactive = target.closest('button, [role="button"], a, label.media-btn, label.btn-action');
+    if (!interactive) return;
+    if (interactive.hasAttribute('data-no-haptic')) return;
+    this.haptic.tap();
+  };
+
+  constructor(
+    private vault: VaultService,
+    private theme: ThemeService,
+    private swUpdate: SwUpdate,
+    private haptic: HapticService,
+  ) {
     this.theme.applyInitial();
     document.addEventListener('visibilitychange', this.onVisibility);
+    document.addEventListener('click', this.onGlobalClick, true);
 
     if (this.swUpdate.isEnabled) {
       this.swUpdate.versionUpdates
@@ -54,6 +70,7 @@ export class AppComponent implements OnDestroy {
 
   ngOnDestroy() {
     document.removeEventListener('visibilitychange', this.onVisibility);
+    document.removeEventListener('click', this.onGlobalClick, true);
     if (this.lockTimer) clearTimeout(this.lockTimer);
   }
 }

@@ -50,6 +50,18 @@
 
   </div>
 
+  <!-- Preferences -->
+  <div class="section">
+    <div class="section-label">Preferences</div>
+    <label class="pref-row">
+      <span class="pref-text">
+        <span class="pref-title">Haptic feedback</span>
+        <span class="pref-desc">Vibrate on taps, mood, save</span>
+      </span>
+      <input type="checkbox" class="toggle" [checked]="haptic.enabled()" (change)="haptic.toggle()" />
+    </label>
+  </div>
+
   <!-- Trash -->
   <div class="section">
     <button class="trash-link" (click)="openTrash()">

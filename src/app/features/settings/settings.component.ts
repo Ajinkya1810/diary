@@ -6,6 +6,7 @@ import { Tag } from '../../core/db/db.service';
 import { TagService } from '../../core/tag/tag.service';
 import { ExportService } from '../../core/export/export.service';
 import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
+import { HapticService } from '../../core/haptic/haptic.service';
 import { BUILD_LABEL } from '../../version';
 
 type ActionState = 'idle' | 'busy' | 'done' | 'error';
@@ -31,6 +32,7 @@ export class SettingsComponent implements OnInit {
   constructor(
     private tagSvc: TagService,
     private exportSvc: ExportService,
+    public haptic: HapticService,
     private router: Router,
   ) {}
 

@@ -336,6 +336,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.8.6 | 2026-05-08 | fix: lock-screen footer (info/theme/version/refresh) no longer fixed at bottom — now in flex flow with justify-content: space-evenly so it centers in lower half |
 | 1.9.0 | 2026-05-08 | feat: Trash / recycle bin. Soft-delete via Entry.deletedAt timestamp. /trash route lists deleted entries with restore + delete-forever buttons. Auto-purge after 30 days runs on timeline init. Empty Trash bulk action |
 | 1.10.0 | 2026-05-08 | style: neon screen frame on every route. body::after fixed-position overlay with 1.5px pink border, rounded corners, inset glow + outer glow, 4s pulse. z-index 15 so bottom-nav (20) and signature (999) sit above |
+| 1.11.0 | 2026-05-08 | feat: global haptic feedback on every tap. App-level click listener fires HapticService.tap on button/[role=button]/a/label clicks. data-no-haptic attr opts out. Settings toggle to disable (persisted in localStorage) |
 
 ---
 
