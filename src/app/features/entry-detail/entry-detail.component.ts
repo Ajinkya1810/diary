@@ -8,7 +8,7 @@ import { TagService } from '../../core/tag/tag.service';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
-interface LoadedMedia { record: MediaRecord; url: string; }
+interface LoadedMedia { record: MediaRecord; url: string; thumbUrl?: string; }
 
 @Component({
   selector: 'app-entry-detail',
@@ -58,7 +58,13 @@ export class EntryDetailComponent implements OnInit, OnDestroy {
         const blob = await this.mediaSvc.getMediaBlob(record);
         const url = URL.createObjectURL(blob);
         this.objectUrls.push(url);
-        loaded.push({ record, url });
+        let thumbUrl: string | undefined;
+        if (record.type === 'video') {
+          const thumbBlob = await this.mediaSvc.getThumbnailBlob(record);
+          thumbUrl = URL.createObjectURL(thumbBlob);
+          this.objectUrls.push(thumbUrl);
+        }
+        loaded.push({ record, url, thumbUrl });
       } catch { /* skip missing */ }
     }
     this.media.set(loaded);

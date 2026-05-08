@@ -279,6 +279,15 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 
 ---
 
+## Dev Protocol
+
+**Every change must:**
+1. Update version in `src/app/version.ts` (patch bump for fixes, minor for features)
+2. Add entry to Patch Log below
+3. Update NOTES.md if architecture/patterns change
+
+---
+
 ## Phase Log
 
 | Phase | What was built |
@@ -289,6 +298,12 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 3 | CryptoService (AES-GCM + PBKDF2), VaultService (in-memory key, passcode setup/unlock, verifier), EntryService (encrypt/decrypt layer), lock screen UI, auto-lock 2min, all routes guarded |
 | 4 | SearchService (inverted index, prefix match), TagService (CRUD), Settings page, tag picker in entry-edit, tag chips on timeline + detail, search bar with debounce, "Edited X ago" on entry-detail |
 | 5 | ExportService, encrypted backup download (.diarybackup), backup restore (cross-device), PDF export (jsPDF, cover + one page per entry), iOS share sheet integration |
+
+## Patch Log
+
+| Version | Date | Change |
+|---|---|---|
+| 1.0.1 | 2026-05-08 | entry-detail: video poster from decrypted thumbnail — no more blank frame before play |
 
 ---
 

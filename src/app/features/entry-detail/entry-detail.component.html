@@ -31,7 +31,7 @@
             @if (m.record.type === 'image') {
               <img class="media-image" [src]="m.url" alt="" (click)="openLightbox(m.url)" />
             } @else {
-              <video class="media-video" [src]="m.url" controls playsinline preload="metadata"></video>
+              <video class="media-video" [src]="m.url" [poster]="m.thumbUrl || ''" controls playsinline preload="metadata"></video>
             }
           }
         </div>
