@@ -2,10 +2,23 @@
   min-height: 100dvh;
   background: var(--bg);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
   font-family: var(--font-ui);
+  gap: 0;
+}
+
+.build-label {
+  position: fixed;
+  bottom: 16px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+  pointer-events: none;
 }
 
 .spinner { color: var(--text-3); font-size: 1.5rem; }

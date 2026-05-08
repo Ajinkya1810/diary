@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { VaultService } from '../../core/vault/vault.service';
+import { BUILD_LABEL } from '../../version';
 
 @Component({
   selector: 'app-lock-screen',
@@ -12,6 +13,7 @@ import { VaultService } from '../../core/vault/vault.service';
   styleUrl: './lock-screen.component.scss',
 })
 export class LockScreenComponent implements OnInit {
+  readonly buildLabel = BUILD_LABEL;
   mode = signal<'loading' | 'setup' | 'unlock'>('loading');
   passcode = '';
   confirm = '';

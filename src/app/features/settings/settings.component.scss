@@ -53,6 +53,18 @@
   &:last-child { border-bottom: none; }
 }
 
+.version-section {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+}
+
+.build-info {
+  font-size: 0.6875rem;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+}
+
 .section-label {
   font-size: 0.6875rem;
   font-weight: 700;

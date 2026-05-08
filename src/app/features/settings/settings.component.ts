@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { Tag } from '../../core/db/db.service';
 import { TagService } from '../../core/tag/tag.service';
 import { ExportService } from '../../core/export/export.service';
+import { BUILD_LABEL } from '../../version';
 
 type ActionState = 'idle' | 'busy' | 'done' | 'error';
 
@@ -21,6 +22,7 @@ export class SettingsComponent implements OnInit {
   editingId = signal<string | null>(null);
   editingName = '';
 
+  readonly buildLabel = BUILD_LABEL;
   backupState = signal<ActionState>('idle');
   importState = signal<ActionState>('idle');
   pdfState = signal<ActionState>('idle');
