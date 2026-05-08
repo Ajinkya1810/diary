@@ -53,12 +53,26 @@ export interface VaultMeta {
   migrationInProgress?: { fromFormat: 'v1'; startedAt: number };
 }
 
+export interface BackupSnapshot {
+  id: string;
+  ts: number;
+  sizeBytes: number;
+  payload: Blob;
+}
+
+export interface SearchTokens {
+  entryId: string;
+  tokens: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class DbService extends Dexie {
   entries!: Table<StoredEntry, string>;
   tags!: Table<Tag, string>;
   media!: Table<MediaRecord, string>;
   vaultMeta!: Table<VaultMeta, string>;
+  backupSnapshots!: Table<BackupSnapshot, string>;
+  searchTokens!: Table<SearchTokens, string>;
 
   constructor() {
     super('diary');
@@ -80,5 +94,20 @@ export class DbService extends Dexie {
       // Wipe plaintext data — incompatible with encrypted schema
       Promise.all([tx.table('entries').clear(), tx.table('media').clear()])
     );
+    this.version(4).stores({
+      entries: 'id, date, createdAt, updatedAt',
+      tags: 'id, name',
+      media: 'id, entryId, createdAt',
+      vaultMeta: 'id',
+      backupSnapshots: 'id, ts',
+    });
+    this.version(5).stores({
+      entries: 'id, date, createdAt, updatedAt',
+      tags: 'id, name',
+      media: 'id, entryId, createdAt',
+      vaultMeta: 'id',
+      backupSnapshots: 'id, ts',
+      searchTokens: 'entryId, *tokens',
+    });
   }
 }

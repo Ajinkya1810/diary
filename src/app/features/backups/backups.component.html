@@ -1,0 +1,49 @@
+<div class="backups-page">
+  <header class="top-bar">
+    <button class="btn-ghost" (click)="back()">← Back</button>
+    <span class="page-title">Local Backups</span>
+    <app-theme-toggle />
+  </header>
+
+  <div class="content">
+    <div class="info-card">
+      <p>Up to 3 encrypted snapshots stored on this device. The app auto-snapshots after each entry save (max once per day). Tap below to take one now.</p>
+      <button class="btn-snap" [disabled]="busyId() === 'new'" (click)="snapshotNow()">
+        {{ busyId() === 'new' ? 'Snapshotting…' : 'Snapshot Now' }}
+      </button>
+    </div>
+
+    @if (error()) {
+      <div class="error-banner">⚠ {{ error() }}</div>
+    }
+
+    @if (loading()) {
+      <p class="empty">Loading…</p>
+    } @else if (snapshots().length === 0) {
+      <div class="empty-state">
+        <div class="icon">⌛</div>
+        <p>No snapshots yet</p>
+        <p class="sub">Save an entry or tap "Snapshot Now".</p>
+      </div>
+    } @else {
+      <ul class="snap-list">
+        @for (s of snapshots(); track s.id) {
+          <li class="snap-item">
+            <div class="info">
+              <div class="ts">{{ formatTs(s.ts) }}</div>
+              <div class="meta">{{ formatSize(s.sizeBytes) }}</div>
+            </div>
+            <div class="actions">
+              <button class="btn-restore"
+                [disabled]="busyId() === s.id"
+                (click)="restore(s.id)">
+                {{ busyId() === s.id ? '…' : 'Restore' }}
+              </button>
+              <button class="btn-remove" (click)="remove(s.id)" aria-label="Delete">✕</button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

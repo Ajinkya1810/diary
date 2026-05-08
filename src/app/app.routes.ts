@@ -49,4 +49,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/trash/trash.component').then(m => m.TrashComponent),
   },
+  {
+    path: 'backups',
+    canActivate: [unlockedGuard],
+    loadComponent: () =>
+      import('./features/backups/backups.component').then(m => m.BackupsComponent),
+  },
 ];

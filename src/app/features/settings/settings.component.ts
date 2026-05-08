@@ -103,4 +103,5 @@ export class SettingsComponent implements OnInit {
 
   back() { this.router.navigate(['/timeline']); }
   openTrash() { this.router.navigate(['/trash']); }
+  openBackups() { this.router.navigate(['/backups']); }
 }

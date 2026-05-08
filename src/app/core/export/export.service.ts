@@ -42,7 +42,8 @@ export class ExportService {
     private vault: VaultService,
   ) {}
 
-  async exportBackup(): Promise<void> {
+  /** Serialize current vault state into a backup JSON Blob. No share/download. */
+  async serializeBackup(): Promise<Blob> {
     const [entries, tags, mediaRecords, vaultMeta] = await Promise.all([
       this.db.entries.toArray(),
       this.db.tags.toArray(),
@@ -89,13 +90,14 @@ export class ExportService {
 
     const checksum = await this.sha256Hex(this.canonicalize(payload));
     const backup: Backup = { ...payload, checksum };
+    return new Blob([JSON.stringify(backup)], { type: 'application/json' });
+  }
 
+  async exportBackup(): Promise<void> {
+    const blob = await this.serializeBackup();
     const date = new Date().toISOString().slice(0, 10);
     const filename = `diary-backup-${date}.json`;
-    await this.shareOrDownload(
-      new Blob([JSON.stringify(backup)], { type: 'application/json' }),
-      filename,
-    );
+    await this.shareOrDownload(blob, filename);
     try { localStorage.setItem('diary.lastBackup', String(Date.now())); } catch { /* ignore */ }
   }
 
@@ -112,11 +114,11 @@ export class ExportService {
     return Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
   }
 
-  async importBackup(file: File): Promise<void> {
+  async importBackup(source: Blob | File): Promise<void> {
     // 1. Parse + validate BEFORE touching any data
     let backup: Backup;
     try {
-      backup = JSON.parse(await file.text());
+      backup = JSON.parse(await source.text());
     } catch {
       throw new Error('Backup file is not valid JSON.');
     }
@@ -164,6 +166,7 @@ export class ExportService {
     // 5. Write OPFS blobs AFTER DB commit. If this step fails partway, DB references
     //    some missing blobs — UI handles missing media gracefully via try/catch.
     await this.opfs.clearDir('media').catch(() => {});
+    this.opfs.clearCache();
     for (const [path, b64] of Object.entries(backup.media.blobs)) {
       try {
         await this.opfs.writeBlob(path, new Blob([b64ToU8(b64)]));

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -58,7 +58,8 @@ export class TimelineComponent implements OnInit, OnDestroy {
     const [all, tags] = await Promise.all([this.entrySvc.listAll(), this.tagSvc.listAll()]);
     this.allEntries = all;
     this.tagMap.set(new Map(tags.map(t => [t.id, t])));
-    this.searchSvc.buildIndex(all);
+    // P3: persist tokens incrementally; only entries with changed updatedAt get re-tokenized.
+    this.searchSvc.ensureIndex(all).catch(() => { /* ignore */ });
     this.applyFilter();
     this.entriesByDate.set(new Map(all.map(e => [e.date, e])));
     this.computeOnThisDay(all);
@@ -123,31 +124,52 @@ export class TimelineComponent implements OnInit, OnDestroy {
     this.searchResults.set(null);
   }
 
-  private applySearch() {
+  private async applySearch() {
     const q = this.searchQuery.trim();
     if (!q) { this.searchResults.set(null); return; }
-    const ids = this.searchSvc.search(q);
+    const ids = await this.searchSvc.search(q);
     if (!ids) { this.searchResults.set([]); return; }
     this.searchResults.set(this.allEntries.filter(e => ids.has(e.id)));
   }
 
   private async loadThumbnails(entries: Entry[]) {
+    // P2: fan-out per entry to a fixed concurrency pool. Update the signal as
+    // each entry's thumbnails arrive so the UI fills in progressively.
     const map = new Map<string, string[]>();
-    for (const entry of entries) {
-      if (!entry.mediaIds?.length) continue;
-      const records = await this.mediaSvc.getEntryMedia(entry.id);
-      const urls: string[] = [];
-      for (const r of records.slice(0, 3)) {
-        try {
-          const blob = await this.mediaSvc.getThumbnailBlob(r);
-          const url = URL.createObjectURL(blob);
+    const queue: Entry[] = entries.filter(e => e.mediaIds?.length);
+    const POOL = 6;
+
+    const runOne = async (entry: Entry) => {
+      try {
+        const records = (await this.mediaSvc.getEntryMedia(entry.id)).slice(0, 3);
+        const blobs = await Promise.all(records.map(r =>
+          this.mediaSvc.getThumbnailBlob(r).catch(() => null),
+        ));
+        const urls = blobs.filter((b): b is Blob => !!b).map(b => {
+          const url = URL.createObjectURL(b);
           this.objectUrls.push(url);
-          urls.push(url);
-        } catch { /* skip */ }
-      }
-      if (urls.length) map.set(entry.id, urls);
+          return url;
+        });
+        if (urls.length) {
+          map.set(entry.id, urls);
+          // emit incremental update so timeline rerenders without waiting for the rest
+          this.thumbUrls.set(new Map(map));
+        }
+      } catch { /* ignore */ }
+    };
+
+    // Round-robin pool
+    let idx = 0;
+    const workers: Promise<void>[] = [];
+    for (let i = 0; i < POOL; i++) {
+      workers.push((async () => {
+        while (idx < queue.length) {
+          const entry = queue[idx++];
+          await runOne(entry);
+        }
+      })());
     }
-    this.thumbUrls.set(map);
+    await Promise.all(workers);
   }
 
   private groupByMonth(entries: Entry[]): MonthGroup[] {
@@ -205,7 +227,8 @@ export class TimelineComponent implements OnInit, OnDestroy {
 
   todayMonth() { this.calendarYM.set(this.currentYM()); }
 
-  calendarCells(): CalendarCell[] {
+  // P6: computed so it only recalculates when calendarYM or entriesByDate change.
+  calendarCells = computed<CalendarCell[]>(() => {
     const { year, month } = this.calendarYM();
     const first = new Date(year, month, 1);
     const startDay = first.getDay(); // 0=Sun
@@ -237,7 +260,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
       cells.push({ date: dateStr, day: d.getDate(), inMonth: false, isToday: false, entry: map.get(dateStr) });
     }
     return cells;
-  }
+  });
 
   onDayTap(cell: CalendarCell) {
     if (cell.entry) this.router.navigate(['/entry', cell.entry.id]);

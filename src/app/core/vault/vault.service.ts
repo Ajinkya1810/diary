@@ -200,8 +200,13 @@ export class VaultService {
 
   lock(): void {
     this.key = null;
+    // Notify subscribers via signal so EntryService etc. can drop caches.
+    this.lockedAt.set(Date.now());
     this.router.navigate(['/lock']);
   }
+
+  // Increments on each lock. EntryService can subscribe to clear its cache.
+  lockedAt = signal<number>(0);
 
   getKey(): CryptoKey | null {
     return this.key;

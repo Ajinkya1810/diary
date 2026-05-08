@@ -9,6 +9,7 @@ import { OpfsService } from '../../core/media/opfs.service';
 import { TagService } from '../../core/tag/tag.service';
 import { DraftService } from '../../core/draft/draft.service';
 import { HapticService } from '../../core/haptic/haptic.service';
+import { BackupService } from '../../core/backup/backup.service';
 import { EditorComponent } from '../../shared/editor/editor.component';
 import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
@@ -70,6 +71,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     private tagSvc: TagService,
     private draftSvc: DraftService,
     private haptic: HapticService,
+    private backupSvc: BackupService,
     private router: Router,
     private route: ActivatedRoute,
   ) {}
@@ -268,17 +270,30 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     const isNew = !this.isEdit;
 
     try {
-      // 1. Pre-encrypt all pending media (CPU + memory; no DB or OPFS yet).
+      // 1. Pre-encrypt all pending media in parallel (concurrency=3).
       //    If any fails, we abort before touching DB.
-      const prepared = [];
-      for (const p of this.pendingMedia) {
-        try {
-          prepared.push(await this.mediaSvc.prepareMedia(entryId, p.file));
-        } catch (e: any) {
-          this.mediaError.set(e.message ?? 'Failed to encode media.');
-          this.saving.set(false);
-          return;
-        }
+      const prepared: { record: any; encryptedBlob: Blob }[] = new Array(this.pendingMedia.length);
+      const POOL = 3;
+      let nextIdx = 0;
+      let prepareError: any = null;
+      const workers: Promise<void>[] = [];
+      for (let i = 0; i < POOL; i++) {
+        workers.push((async () => {
+          while (nextIdx < this.pendingMedia.length && !prepareError) {
+            const myIdx = nextIdx++;
+            try {
+              prepared[myIdx] = await this.mediaSvc.prepareMedia(entryId, this.pendingMedia[myIdx].file);
+            } catch (e: any) {
+              prepareError = e;
+            }
+          }
+        })());
+      }
+      await Promise.all(workers);
+      if (prepareError) {
+        this.mediaError.set(prepareError.message ?? 'Failed to encode media.');
+        this.saving.set(false);
+        return;
       }
 
       // 2. Capture OPFS paths of media we're about to drop (need before DB delete).
@@ -312,6 +327,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
 
       this.draftSvc.clear(this.draftSlot);
       if (this.draftSlot === 'new') this.draftSvc.clear(entryId);
+      this.backupSvc.scheduleSnapshot();
       this.haptic.success();
       this.router.navigate(['/entry', entryId]);
     } catch (e: any) {

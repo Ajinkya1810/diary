@@ -2,6 +2,13 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class OpfsService {
+  // P5: cache resolved directory handles per session to avoid repeated
+  // root + traversal calls for every read/write.
+  private dirCache = new Map<string, FileSystemDirectoryHandle>();
+
+  /** Drop the dir handle cache. Call after any operation that rewrites the OPFS tree (e.g., import). */
+  clearCache(): void { this.dirCache.clear(); }
+
 
   async writeBlob(path: string, blob: Blob): Promise<void> {
     const handle = await this.resolveFile(path, true);
@@ -74,11 +81,15 @@ export class OpfsService {
   }
 
   private async resolveDir(parts: string[], create: boolean): Promise<FileSystemDirectoryHandle> {
+    const cacheKey = (create ? 'w:' : 'r:') + parts.join('/');
+    const cached = this.dirCache.get(cacheKey);
+    if (cached) return cached;
     const root = await navigator.storage.getDirectory();
     let dir: FileSystemDirectoryHandle = root;
     for (const part of parts) {
       dir = await dir.getDirectoryHandle(part, { create });
     }
+    this.dirCache.set(cacheKey, dir);
     return dir;
   }
 }

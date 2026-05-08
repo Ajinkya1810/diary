@@ -74,6 +74,18 @@
     </button>
   </div>
 
+  <!-- Local Backups -->
+  <div class="section">
+    <button class="trash-link" (click)="openBackups()">
+      <span class="trash-icon">⌛</span>
+      <span class="trash-text">
+        <span class="trash-title">Local Backups</span>
+        <span class="trash-desc">Last 3 auto-snapshots stored on device</span>
+      </span>
+      <span class="trash-arrow">›</span>
+    </button>
+  </div>
+
   <!-- Version -->
   <div class="section version-section">
     <span class="build-info">{{ buildLabel }}</span>
