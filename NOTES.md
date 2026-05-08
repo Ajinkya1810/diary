@@ -304,6 +304,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | Version | Date | Change |
 |---|---|---|
 | 1.0.1 | 2026-05-08 | entry-detail: video poster from decrypted thumbnail — no more blank frame before play |
+| 1.0.2 | 2026-05-08 | fix: GitHub Pages SPA deep-link 404 — added 404.html redirect + index.html decode script |
 
 ---
 
