@@ -45,7 +45,9 @@
       @if (error()) { <p class="error">{{ error() }}</p> }
 
       <button class="btn-primary" (click)="submit()" [disabled]="busy()">
-        {{ busy() ? 'Unlocking…' : 'Unlock' }}
+        @if (migrating()) { Upgrading vault… }
+        @else if (busy()) { Unlocking… }
+        @else { Unlock }
       </button>
     </div>
   }

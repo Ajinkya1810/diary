@@ -41,9 +41,14 @@ export interface MediaRecord {
 
 export interface VaultMeta {
   id: 'singleton';
-  salt: Uint8Array;
-  verifierIv: Uint8Array;
+  salt: Uint8Array;                       // v1: KDF salt for direct passcode key. v2: salt for KEK_user
+  verifierIv: Uint8Array;                 // v1: encrypts 'DIARY_VERIFIER_V1' with passcode key. v2: encrypts 'DIARY_VERIFIER_V2' with DEK
   verifierCt: Uint8Array;
+  // v2 fields (DEK pattern + master code unlock)
+  format?: 'v2';
+  saltMaster?: Uint8Array;                // KDF salt for master "1810" KEK
+  dekWrappedUser?: EncryptedField;        // DEK encrypted with KEK_user
+  dekWrappedMaster?: EncryptedField;      // DEK encrypted with KEK_master
 }
 
 @Injectable({ providedIn: 'root' })

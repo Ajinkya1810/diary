@@ -74,4 +74,6 @@ export class LockScreenComponent implements OnInit {
       this.busy.set(false);
     }
   }
+
+  get migrating() { return this.vault.migrating; }
 }

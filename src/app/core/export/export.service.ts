@@ -14,10 +14,21 @@ const b64ToU8 = (b64: string): Uint8Array => Uint8Array.from(atob(b64), c => c.c
 const serField = (f: EncryptedField) => ({ iv: u8ToB64(f.iv), ct: u8ToB64(f.ct) });
 const desField = (f: { iv: string; ct: string }): EncryptedField => ({ iv: b64ToU8(f.iv), ct: b64ToU8(f.ct) });
 
+interface BackupV1VaultMeta {
+  salt: string;
+  verifierIv: string;
+  verifierCt: string;
+  // v2 (DEK pattern + master code) — optional for backwards compat
+  format?: 'v2';
+  saltMaster?: string;
+  dekWrappedUser?: { iv: string; ct: string };
+  dekWrappedMaster?: { iv: string; ct: string };
+}
+
 interface BackupV1 {
   version: 1;
   exportedAt: number;
-  vaultMeta: { salt: string; verifierIv: string; verifierCt: string } | null;
+  vaultMeta: BackupV1VaultMeta | null;
   entries: any[];
   tags: Tag[];
   media: { records: any[]; blobs: Record<string, string> };
@@ -55,6 +66,10 @@ export class ExportService {
         salt: u8ToB64(vaultMeta.salt),
         verifierIv: u8ToB64(vaultMeta.verifierIv),
         verifierCt: u8ToB64(vaultMeta.verifierCt),
+        ...(vaultMeta.format ? { format: vaultMeta.format } : {}),
+        ...(vaultMeta.saltMaster ? { saltMaster: u8ToB64(vaultMeta.saltMaster) } : {}),
+        ...(vaultMeta.dekWrappedUser ? { dekWrappedUser: serField(vaultMeta.dekWrappedUser) } : {}),
+        ...(vaultMeta.dekWrappedMaster ? { dekWrappedMaster: serField(vaultMeta.dekWrappedMaster) } : {}),
       } : null,
       entries: entries.map(e => ({
         ...e,
@@ -101,6 +116,10 @@ export class ExportService {
         salt: b64ToU8(vm.salt),
         verifierIv: b64ToU8(vm.verifierIv),
         verifierCt: b64ToU8(vm.verifierCt),
+        ...(vm.format ? { format: vm.format } : {}),
+        ...(vm.saltMaster ? { saltMaster: b64ToU8(vm.saltMaster) } : {}),
+        ...(vm.dekWrappedUser ? { dekWrappedUser: desField(vm.dekWrappedUser) } : {}),
+        ...(vm.dekWrappedMaster ? { dekWrappedMaster: desField(vm.dekWrappedMaster) } : {}),
       });
     }
 

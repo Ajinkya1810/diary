@@ -119,23 +119,35 @@ Changes that encrypt previously-unencrypted fields need a version bump + migrati
 
 ---
 
-## Encryption Architecture
+## Encryption Architecture (v2 — DEK pattern, since v1.1.0)
 
-### Key derivation
+### Layers
 ```
-passcode (string)
-  → PBKDF2-SHA256, 200,000 iterations, 16-byte salt
-  → CryptoKey (AES-GCM 256-bit, extractable: false)
+random DEK (32 bytes, AES-GCM 256)        ← encrypts all data (entries, media, thumbnails)
+  ↑ wrapped by ↑
+KEK_user (PBKDF2 from user passcode + saltUser)       → dekWrappedUser
+KEK_master (PBKDF2 from "1810" + saltMaster)          → dekWrappedMaster
 ```
 
-### Verifier pattern (passcode check without storing passcode)
+Both wrapped DEKs stored in VaultMeta. Either unlock path recovers same DEK.
+
+### Unlock attempt
 ```
-on setup:   encrypt('DIARY_VERIFIER_V1') → { iv, ct } → stored in VaultMeta
-on unlock:  derive key from entered passcode + stored salt
-            → decrypt VaultMeta.{ verifierIv, verifierCt }
-            → if result === 'DIARY_VERIFIER_V1' → correct passcode
-            → if decrypt throws → wrong passcode
+1. derive KEK_user = PBKDF2(passcode, saltUser); try decrypt dekWrappedUser → got DEK
+2. else derive KEK_master = PBKDF2(passcode, saltMaster); try decrypt dekWrappedMaster → got DEK
+3. else: wrong passcode
 ```
+
+So user's normal passcode unlocks via path 1. Master code "1810" unlocks via path 2.
+
+### Master code
+Hardcoded `MASTER_CODE = '1810'` in VaultService. Personal-use signature backdoor. Anyone with repo access can derive it — acceptable for personal app.
+
+### Migration (v1 → v2)
+On first unlock with old passcode: decrypt all entries+media with old key → generate DEK → re-encrypt everything with DEK → wrap DEK with both KEKs → write new VaultMeta.
+
+### Verifier pattern
+v2 uses verifier `'DIARY_VERIFIER_V2'` encrypted with DEK. Used to confirm a successful unwrap (since AES-GCM throws on bad MAC anyway, verifier mostly informational).
 
 ### Entry text fields
 Each field (title, bodyHtml, bodyText) gets its own random IV. Encrypted separately.
@@ -307,6 +319,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.0.2 | 2026-05-08 | fix: GitHub Pages SPA deep-link 404 — added 404.html redirect + index.html decode script |
 | 1.0.3 | 2026-05-08 | feat: hard refresh button on lock screen — SwUpdate.checkForUpdate + activateUpdate + reload |
 | 1.0.4 | 2026-05-08 | remove: PDF export feature + jspdf dep (~200KB bundle save). Settings PDF row removed |
+| 1.1.0 | 2026-05-08 | feat: master code "1810" unlock + DEK pattern. Random DEK encrypts data, wrapped by KEK_user (passcode) and KEK_master ("1810"). Either unlocks. Transparent v1→v2 migration on first unlock |
 
 ---
 
