@@ -411,6 +411,7 @@ After every save, `BackupService.scheduleSnapshot()` debounces 5 min, then write
 | 1.13.0 | 2026-05-08 | feat: auto rolling backups (B1) + perf at scale (Phase P). New BackupService stores last 3 encrypted snapshots in IDB (Dexie v4 backupSnapshots table); auto-snapshot debounced ≤1/day after every save; /backups route + Settings link with Snapshot Now / Restore / Delete. P1: EntryService caches decrypted entries by updatedAt (cleared on lock via signal effect). P2: timeline thumbnails fan out to a 6-way concurrency pool with progressive UI updates. P3: persistent search index in Dexie v5 searchTokens table (`*tokens` multi-entry index); SearchService.ensureIndex syncs incrementally on each timeline load; search() now async via Dexie startsWith. P4: media prepare in entry-edit save runs concurrency=3 (30 photos ≈ 30s instead of 4 min). P5: OpfsService caches resolved directory handles (cleared after import). P6: calendarCells converted to computed signal so it doesn't recalc on every CD cycle |
 | 1.13.1 | 2026-05-08 | fix: TS2769 in SearchService.search/searchSync — `[...result]` narrowed to `never[]`. Add explicit `Set<string>` cast |
 | 1.13.2 | 2026-05-08 | docs: refresh NOTES.md + README.md to reflect every feature shipped through 1.13.x. No code changes |
+| 1.13.3 | 2026-05-08 | docs: rewrite Help & About screen for current feature set — adds master code "1810", trash, local snapshots, install banner, update banner, word count, validate-before-clear note; removes stale long-press tip |
 
 ---
 

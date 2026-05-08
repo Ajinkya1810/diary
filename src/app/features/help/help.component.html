@@ -16,16 +16,18 @@
     <section class="card">
       <h2>What it does</h2>
       <ul class="feature-list">
-        <li><b>Daily entries</b> — write text with formatting, set mood, tag, and save.</li>
+        <li><b>Daily entries</b> — rich text, mood (1–5), tags, date.</li>
         <li><b>Photos &amp; videos</b> — attach to any entry. Encrypted on device.</li>
-        <li><b>Voice notes</b> — tap 🎤 to record audio (max 5 min).</li>
-        <li><b>Calendar view</b> — month grid with mood at a glance.</li>
-        <li><b>On this day</b> — see entries from same date in past years.</li>
-        <li><b>Search</b> — fast prefix search across titles and bodies.</li>
-        <li><b>Tags</b> — organize entries; tap a chip to filter.</li>
-        <li><b>Backup &amp; restore</b> — encrypted .diarybackup file you control.</li>
-        <li><b>Dark &amp; light mode</b> — toggle ☀/🌙 anywhere.</li>
+        <li><b>Voice notes</b> — tap 🎤 in the editor to record (max 5 min).</li>
+        <li><b>Calendar view</b> — month grid; mood-tinted day cells.</li>
+        <li><b>On this day</b> — entries from the same date in past years surface on the timeline.</li>
+        <li><b>Search</b> — instant prefix search across titles and bodies. Persistent index.</li>
+        <li><b>Tags</b> — tap a tag chip to filter the timeline.</li>
+        <li><b>Trash</b> — deleted entries are soft-deleted; auto-purged after 30 days. Restore anytime.</li>
+        <li><b>Backups</b> — encrypted .json file export + 3 auto-rolling snapshots stored locally.</li>
+        <li><b>Dark / light mode</b> — toggle ☀/🌙 in any header.</li>
         <li><b>PWA</b> — install to home screen, runs offline.</li>
+        <li><b>Master code</b> — your signature "1810" works as a backup unlock alongside your passcode.</li>
       </ul>
     </section>
 
@@ -36,7 +38,7 @@
         <div class="how-step">1.</div>
         <div>
           <div class="how-title">Create an entry</div>
-          <p>Tap <b>+</b> in bottom nav. Add title, pick a mood, write. Tap <b>Save</b>.</p>
+          <p>Tap <b>+</b> in the bottom nav. Add title, pick a mood, write. Tap <b>Save</b>.</p>
         </div>
       </div>
 
@@ -44,7 +46,7 @@
         <div class="how-step">2.</div>
         <div>
           <div class="how-title">Attach media</div>
-          <p><b>+ Photo / Video</b> picks from library. <b>📷 Camera</b> opens the camera. <b>🎤 Record</b> starts a voice note (tap again to stop).</p>
+          <p><b>+ Photo / Video</b> picks from library (also accepts audio files). <b>📷 Camera</b> opens the camera. <b>🎤 Record</b> starts a voice note — tap again to stop.</p>
         </div>
       </div>
 
@@ -52,7 +54,7 @@
         <div class="how-step">3.</div>
         <div>
           <div class="how-title">Browse</div>
-          <p>Use <b>List</b> for chronological view, <b>Calendar</b> for month overview. Tap a calendar day to open that entry, or to start a new one for that date.</p>
+          <p>Use <b>List</b> for chronological view, <b>Calendar</b> for month overview. Tap a calendar day to open that entry, or to start a new one pre-filled with that date. Tap the month title to jump back to today.</p>
         </div>
       </div>
 
@@ -60,23 +62,39 @@
         <div class="how-step">4.</div>
         <div>
           <div class="how-title">Search &amp; filter</div>
-          <p>Type in the search bar. Tap a tag chip on any entry to filter the timeline by that tag. Tap the pink filter pill to clear.</p>
+          <p>Type in the search bar — results update as you type. Tap any tag chip on a row to filter the timeline by that tag; tap the pink filter pill to clear.</p>
         </div>
       </div>
 
       <div class="how-block">
         <div class="how-step">5.</div>
         <div>
-          <div class="how-title">Back up</div>
-          <p>Settings → <b>Encrypted Backup</b> downloads a .json file. Save it somewhere safe (cloud drive, AirDrop). Restore on another device with the same passcode.</p>
+          <div class="how-title">Trash &amp; restore</div>
+          <p>Deleting an entry moves it to <b>Settings → Trash</b>. You can restore it anytime within 30 days. After 30 days it's permanently purged.</p>
         </div>
       </div>
 
       <div class="how-block">
         <div class="how-step">6.</div>
         <div>
+          <div class="how-title">Back up</div>
+          <p><b>Settings → Encrypted Backup</b> downloads a .json file. Save it somewhere safe (cloud drive, AirDrop). The app also keeps the latest 3 snapshots locally — see <b>Settings → Local Backups</b> to restore from them or take one on demand.</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">7.</div>
+        <div>
           <div class="how-title">If your device dies</div>
-          <p>Open Diary on a new device, set up with your passcode, then go to Settings → <b>Restore Backup</b> and pick the file. All entries and media return.</p>
+          <p>Open Diary on a new device, set up with your passcode, then go to <b>Settings → Restore Backup</b> and pick the file. All entries, photos, videos, and voice notes return.</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">8.</div>
+        <div>
+          <div class="how-title">Install on iPhone</div>
+          <p>Open in Safari → Share → <b>Add to Home Screen</b>. Or tap <b>Install</b> on the lock-screen banner if it appears. Runs full-screen, fully offline.</p>
         </div>
       </div>
     </section>
@@ -84,26 +102,29 @@
     <section class="card">
       <h2>Privacy &amp; security</h2>
       <ul class="feature-list">
-        <li><b>Local-only.</b> No server, no cloud, no analytics. Everything stays in your browser/device.</li>
-        <li><b>Encrypted.</b> Entries, photos, videos, audio — all AES-GCM 256-bit. Your passcode derives the key.</li>
-        <li><b>No recovery.</b> If you forget your passcode, data is gone forever. Back up.</li>
+        <li><b>Local-only.</b> No server, no cloud, no analytics. Everything stays on this device.</li>
+        <li><b>Encrypted.</b> Entries, photos, videos, voice notes, thumbnails — all AES-GCM 256-bit.</li>
+        <li><b>Two-key unlock.</b> Your passcode unlocks the diary. The master code <b>1810</b> also works as a personal backup unlock.</li>
+        <li><b>No recovery.</b> Forget both codes and lose your backup file? Data is gone forever. Keep at least one backup off-device.</li>
         <li><b>Auto-lock.</b> App locks after 2 minutes in background.</li>
+        <li><b>Backup safety.</b> Restoring a backup validates the file (and verifies its sha256 checksum) BEFORE replacing your current data — wrong file won't wipe your diary.</li>
       </ul>
     </section>
 
     <section class="card">
       <h2>Tips</h2>
       <ul class="feature-list">
-        <li>Long-press the calendar month title to jump back to the current month.</li>
         <li>Drafts auto-save every 3 seconds while editing — close the tab safely.</li>
-        <li>Theme toggle (☀/🌙) sits next to the version label on the lock screen and in every header.</li>
-        <li>Hard refresh: tap ↻ next to the version on the lock screen to fetch the latest update.</li>
+        <li>Word count and reading time appear under each entry on the detail page.</li>
+        <li>Header tools (☀/🌙 + ⓘ) are on every screen — theme toggle and this Help screen are always one tap away.</li>
+        <li>Hard refresh: tap <b>↻</b> next to the version on the lock screen to fetch the latest update.</li>
+        <li>If a new version is available while you're using the app, a pink banner appears at the top — tap <b>Reload</b>.</li>
       </ul>
     </section>
 
     <section class="card about">
       <p class="version">{{ buildLabel }}</p>
-      <p class="made-with">Made for personal use. Open source, no tracking.</p>
+      <p class="made-with">Made for personal use. No tracking, no telemetry.</p>
     </section>
 
   </div>
