@@ -333,6 +333,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.8.3 | 2026-05-08 | style: signature now pink neon glow, full opacity, pulsing text-shadow, z-index 999 so it stays visible above bottom-nav on every screen |
 | 1.8.4 | 2026-05-08 | style: prefix "made by" added before Ajinkya. Smaller sans-serif, lowercase, slightly muted; signature stays italic script with neon glow |
 | 1.8.5 | 2026-05-08 | fix: signature offset raised to 82px from bottom so it no longer overlaps the bottom-nav Settings button on timeline |
+| 1.8.6 | 2026-05-08 | fix: lock-screen footer (info/theme/version/refresh) no longer fixed at bottom — now in flex flow with justify-content: space-evenly so it centers in lower half |
 
 ---
 

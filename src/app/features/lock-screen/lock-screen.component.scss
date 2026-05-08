@@ -4,20 +4,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: space-evenly;
   padding: 24px;
   font-family: var(--font-ui);
   gap: 0;
 }
 
 .build-footer {
-  position: fixed;
-  bottom: 16px;
-  left: 0; right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .build-label {
