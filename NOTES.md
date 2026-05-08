@@ -282,7 +282,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 ## Dev Protocol
 
 **Every change must:**
-1. Update version in `src/app/version.ts` (patch bump for fixes, minor for features)
+1. Bump `"version"` in `package.json` (patch for fixes, minor for features) — `version.ts` is auto-generated from it at build via `scripts/gen-version.js`, do NOT edit `version.ts` directly
 2. Add entry to Patch Log below
 3. Update NOTES.md if architecture/patterns change
 
