@@ -57,6 +57,37 @@ html, body {
   transition: background-color 0.4s ease, color 0.3s ease;
 }
 
+// Neon screen frame — applied via fixed pseudo-element so it overlays every route
+body::after {
+  content: '';
+  position: fixed;
+  inset: calc(5px + env(safe-area-inset-top, 0)) 5px calc(5px + env(safe-area-inset-bottom, 0)) 5px;
+  border: 1.5px solid var(--accent);
+  border-radius: 14px;
+  box-shadow:
+    inset 0 0 22px rgba(255,45,120,0.16),
+    inset 0 0 60px rgba(255,45,120,0.05),
+    0 0 12px rgba(255,45,120,0.35);
+  pointer-events: none;
+  z-index: 15;
+  animation: frame-pulse 4s ease-in-out infinite;
+}
+
+@keyframes frame-pulse {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 22px rgba(255,45,120,0.16),
+      inset 0 0 60px rgba(255,45,120,0.05),
+      0 0 12px rgba(255,45,120,0.35);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 30px rgba(255,45,120,0.22),
+      inset 0 0 80px rgba(255,45,120,0.08),
+      0 0 18px rgba(255,45,120,0.45);
+  }
+}
+
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.5);
 }
