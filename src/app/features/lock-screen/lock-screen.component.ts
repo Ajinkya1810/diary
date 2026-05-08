@@ -2,6 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { SwUpdate } from '@angular/service-worker';
 import { VaultService } from '../../core/vault/vault.service';
 import { BUILD_LABEL } from '../../version';
 
@@ -20,8 +21,21 @@ export class LockScreenComponent implements OnInit {
   warningAcknowledged = false;
   error = signal('');
   busy = signal(false);
+  refreshing = signal(false);
 
-  constructor(private vault: VaultService, private router: Router) {}
+  constructor(private vault: VaultService, private router: Router, private swUpdate: SwUpdate) {}
+
+  async hardRefresh() {
+    this.refreshing.set(true);
+    try {
+      if (this.swUpdate.isEnabled) {
+        await this.swUpdate.checkForUpdate();
+        await this.swUpdate.activateUpdate();
+      }
+    } finally {
+      window.location.reload();
+    }
+  }
 
   async ngOnInit() {
     const initialized = await this.vault.isInitialized();

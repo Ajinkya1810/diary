@@ -50,5 +50,8 @@
     </div>
   }
 
-  <div class="build-label">{{ buildLabel }}</div>
+  <div class="build-footer">
+    <span class="build-label">{{ buildLabel }}</span>
+    <button class="btn-refresh" (click)="hardRefresh()" [disabled]="refreshing()" title="Check for update">↻</button>
+  </div>
 </div>

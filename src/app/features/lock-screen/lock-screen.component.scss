@@ -10,15 +10,40 @@
   gap: 0;
 }
 
-.build-label {
+.build-footer {
   position: fixed;
   bottom: 16px;
   left: 0; right: 0;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.build-label {
   font-size: 0.6875rem;
   color: var(--text-3);
   letter-spacing: 0.06em;
-  pointer-events: none;
+}
+
+.btn-refresh {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  line-height: 1;
+  opacity: 0.6;
+  transition: opacity 0.15s, transform 0.3s;
+
+  &:hover { opacity: 1; }
+  &:disabled { opacity: 0.3; cursor: default; animation: spin 1s linear infinite; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .spinner { color: var(--text-3); font-size: 1.5rem; }
