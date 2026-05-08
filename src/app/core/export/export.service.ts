@@ -76,9 +76,9 @@ export class ExportService {
     };
 
     const date = new Date().toISOString().slice(0, 10);
-    const filename = `diary-backup-${date}.diarybackup`;
+    const filename = `diary-backup-${date}.json`;
     await this.shareOrDownload(
-      new Blob([JSON.stringify(backup)], { type: 'application/octet-stream' }),
+      new Blob([JSON.stringify(backup)], { type: 'application/json' }),
       filename,
     );
   }

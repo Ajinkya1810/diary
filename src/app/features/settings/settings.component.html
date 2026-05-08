@@ -16,7 +16,7 @@
     <div class="action-row">
       <div class="action-info">
         <span class="action-title">Encrypted Backup</span>
-        <span class="action-desc">Downloads all entries + media as .diarybackup file. Requires same passcode to restore.</span>
+        <span class="action-desc">Downloads all entries + media as a .json file. Requires same passcode to restore.</span>
       </div>
       <button class="btn-action"
         [disabled]="backupState() === 'busy'"
@@ -32,7 +32,7 @@
     <div class="action-row">
       <div class="action-info">
         <span class="action-title">Restore Backup</span>
-        <span class="action-desc">Replaces all data with a .diarybackup file. App will lock — re-enter your passcode.</span>
+        <span class="action-desc">Replaces all data from a backup .json file. App will lock — re-enter your passcode.</span>
       </div>
       <label class="btn-action" [class.disabled]="importState() === 'busy'">
         @switch (importState()) {
@@ -40,7 +40,7 @@
           @case ('done') { ✓ Done }
           @default { Import }
         }
-        <input type="file" accept=".diarybackup,application/json" hidden
+        <input type="file" accept=".json,application/json" hidden
           (change)="onImportFile($event)" [disabled]="importState() === 'busy'" />
       </label>
     </div>
