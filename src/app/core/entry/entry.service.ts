@@ -61,6 +61,74 @@ export class EntryService {
     await this.db.entries.update(id, { deletedAt: Date.now() } as any);
   }
 
+  /**
+   * D2: write an entry plus add/remove media records inside a single Dexie
+   * transaction so a crash mid-way leaves the DB in a consistent state.
+   * OPFS writes happen separately (caller is responsible).
+   */
+  async saveAtomic(opts: {
+    entryId: string;
+    isNew: boolean;
+    fields: {
+      title: string;
+      date: string;
+      bodyHtml: string;
+      bodyText: string;
+      mood: number | null;
+      tagIds: string[];
+    };
+    addMediaRecords: MediaRecord[];
+    removeMediaIds: string[];
+    now: number;
+  }): Promise<void> {
+    const key = this.vault.requireKey();
+    const [encTitle, encBodyHtml, encBodyText] = await Promise.all([
+      this.crypto.encryptString(key, opts.fields.title),
+      this.crypto.encryptString(key, opts.fields.bodyHtml),
+      this.crypto.encryptString(key, opts.fields.bodyText),
+    ]);
+
+    await this.db.transaction('rw', this.db.entries, this.db.media, async () => {
+      if (opts.isNew) {
+        const stored: StoredEntry = {
+          id: opts.entryId,
+          date: opts.fields.date,
+          title: encTitle,
+          bodyHtml: encBodyHtml,
+          bodyText: encBodyText,
+          mood: opts.fields.mood,
+          tagIds: opts.fields.tagIds,
+          mediaIds: opts.addMediaRecords.map(r => r.id),
+          createdAt: opts.now,
+          updatedAt: opts.now,
+        };
+        await this.db.entries.add(stored);
+      } else {
+        await this.db.entries.update(opts.entryId, {
+          date: opts.fields.date,
+          title: encTitle,
+          bodyHtml: encBodyHtml,
+          bodyText: encBodyText,
+          mood: opts.fields.mood,
+          tagIds: opts.fields.tagIds,
+          updatedAt: opts.now,
+        } as any);
+        if (opts.removeMediaIds.length || opts.addMediaRecords.length) {
+          await this.db.entries.where('id').equals(opts.entryId).modify((e: any) => {
+            const kept = (e.mediaIds ?? []).filter((id: string) => !opts.removeMediaIds.includes(id));
+            e.mediaIds = [...kept, ...opts.addMediaRecords.map(r => r.id)];
+          });
+        }
+        for (const mid of opts.removeMediaIds) {
+          await this.db.media.delete(mid);
+        }
+      }
+      for (const rec of opts.addMediaRecords) {
+        await this.db.media.add(rec);
+      }
+    });
+  }
+
   async restore(id: string): Promise<void> {
     await this.db.entries.update(id, { deletedAt: undefined } as any);
   }
@@ -76,10 +144,39 @@ export class EntryService {
 
   async purgeExpired(): Promise<number> {
     const now = Date.now();
+    // Skip if last run was very recent (avoid thrashing on rapid timeline navs).
+    const lastRaw = +(localStorage.getItem('diary.lastPurgeAt') ?? 0);
+    if (lastRaw && now - lastRaw < 60 * 60 * 1000) return 0;
+    // Clock-went-backward guard.
+    if (lastRaw && now < lastRaw) {
+      // Don't purge — system clock anomaly. Reset the marker to "now" so we resume safely later.
+      try { localStorage.setItem('diary.lastPurgeAt', String(now)); } catch { /* ignore */ }
+      return 0;
+    }
+
+    const margin = TRASH_TTL_MS + 24 * 60 * 60 * 1000; // extra day so borderline entries don't vanish on slight skew
     const stored = await this.db.entries.toArray();
-    const expired = stored.filter(s => s.deletedAt && (now - s.deletedAt) > TRASH_TTL_MS);
+    const expired = stored.filter(s =>
+      s.deletedAt &&
+      s.deletedAt <= now &&            // never trust a future deletedAt
+      (now - s.deletedAt) > margin,
+    );
     for (const e of expired) await this.hardDelete(e.id);
+
+    try { localStorage.setItem('diary.lastPurgeAt', String(now)); } catch { /* ignore */ }
+    if (expired.length) this.appendPurgeLog(expired.map(e => e.id), now);
     return expired.length;
+  }
+
+  private appendPurgeLog(ids: string[], ts: number): void {
+    try {
+      const raw = localStorage.getItem('diary.purgeLog');
+      const log: { ts: number; ids: string[] }[] = raw ? JSON.parse(raw) : [];
+      log.push({ ts, ids });
+      // keep last 100 events only
+      const trimmed = log.slice(-100);
+      localStorage.setItem('diary.purgeLog', JSON.stringify(trimmed));
+    } catch { /* ignore */ }
   }
 
   daysUntilPurge(deletedAt: number): number {

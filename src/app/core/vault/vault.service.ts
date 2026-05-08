@@ -3,6 +3,7 @@ import { Router } from '@angular/router';
 import { DbService, VaultMeta } from '../db/db.service';
 import { CryptoService } from '../crypto/crypto.service';
 import { OpfsService } from '../media/opfs.service';
+import { StorageService } from '../storage/storage.service';
 
 const MASTER_CODE = '1810';
 const VERIFIER_V2 = 'DIARY_VERIFIER_V2';
@@ -16,6 +17,7 @@ export class VaultService {
     private db: DbService,
     private crypto: CryptoService,
     private opfs: OpfsService,
+    private storage: StorageService,
     private router: Router,
   ) {}
 
@@ -50,11 +52,21 @@ export class VaultService {
     });
 
     this.key = dek;
+    this.storage.ensurePersisted().catch(() => {});
   }
 
   async unlock(passcode: string): Promise<boolean> {
     const meta = await this.db.vaultMeta.get('singleton');
     if (!meta) return false;
+
+    // D5: detect interrupted migration. Don't auto-resume — too risky with mixed encryption state.
+    if (meta.migrationInProgress) {
+      console.error('[vault] interrupted migration detected', meta.migrationInProgress);
+      // Surface this via the migrating signal which the UI can present.
+      // For now, prompt user via alert before bailing.
+      alert('A previous vault upgrade was interrupted. Some entries may be inaccessible. Restore from your latest backup is strongly recommended.');
+      // Allow unlock attempt to proceed against the *remaining* v1 fields if present.
+    }
 
     if (meta.format === 'v2' && meta.dekWrappedUser && meta.dekWrappedMaster && meta.saltMaster) {
       return this.unlockV2(passcode, meta);
@@ -66,6 +78,7 @@ export class VaultService {
     const dek = await this.tryUnwrapDek(passcode, meta);
     if (!dek) return false;
     this.key = dek;
+    this.storage.ensurePersisted().catch(() => {});
     return true;
   }
 
@@ -99,6 +112,7 @@ export class VaultService {
     this.migrating.set(true);
     try {
       await this.migrateV1ToV2(oldKey, passcode);
+      this.storage.ensurePersisted().catch(() => {});
       return true;
     } finally {
       this.migrating.set(false);
@@ -106,40 +120,56 @@ export class VaultService {
   }
 
   private async migrateV1ToV2(oldKey: CryptoKey, passcode: string): Promise<void> {
+    const existingMeta = await this.db.vaultMeta.get('singleton');
+    if (!existingMeta) throw new Error('Vault meta missing during migration');
+    const saltUserBytes = existingMeta.salt;
+
+    // D5: mark migration in progress BEFORE touching any data. If we crash now,
+    // unlock will surface a recovery prompt.
+    await this.db.vaultMeta.update('singleton', {
+      migrationInProgress: { fromFormat: 'v1', startedAt: Date.now() },
+    } as any);
+
     const dekRaw = crypto.getRandomValues(new Uint8Array(32));
     const dek = await this.importAesKey(dekRaw);
 
-    // Re-encrypt entries
-    const entries = await this.db.entries.toArray();
-    for (const e of entries) {
-      const titlePlain = await this.crypto.decryptString(oldKey, e.title);
-      const bodyHtmlPlain = await this.crypto.decryptString(oldKey, e.bodyHtml);
-      const bodyTextPlain = await this.crypto.decryptString(oldKey, e.bodyText);
-      await this.db.entries.update(e.id, {
-        title: await this.crypto.encryptString(dek, titlePlain),
-        bodyHtml: await this.crypto.encryptString(dek, bodyHtmlPlain),
-        bodyText: await this.crypto.encryptString(dek, bodyTextPlain),
-      } as any);
-    }
+    // Re-encrypt all entry text fields and media thumbnails inside a single Dexie
+    // transaction so the DB doesn't end up half-converted on crash.
+    await this.db.transaction('rw', this.db.entries, this.db.media, async () => {
+      const entries = await this.db.entries.toArray();
+      for (const e of entries) {
+        const titlePlain = await this.crypto.decryptString(oldKey, e.title);
+        const bodyHtmlPlain = await this.crypto.decryptString(oldKey, e.bodyHtml);
+        const bodyTextPlain = await this.crypto.decryptString(oldKey, e.bodyText);
+        await this.db.entries.update(e.id, {
+          title: await this.crypto.encryptString(dek, titlePlain),
+          bodyHtml: await this.crypto.encryptString(dek, bodyHtmlPlain),
+          bodyText: await this.crypto.encryptString(dek, bodyTextPlain),
+        } as any);
+      }
+      const mediaRecords = await this.db.media.toArray();
+      for (const r of mediaRecords) {
+        const thumbPlain = await this.crypto.decryptToBlob(oldKey, r.thumbnailData);
+        await this.db.media.update(r.id, {
+          thumbnailData: await this.crypto.encryptBlob(dek, thumbPlain),
+        } as any);
+      }
+    });
 
-    // Re-encrypt media (thumbnails in DB + blobs in OPFS)
+    // Re-encrypt OPFS blobs (can't be transactional). If interrupted here, DB is
+    // already consistent with new key — only some OPFS blobs may still be old-key.
+    // UI handles missing/undecryptable blobs gracefully.
     const mediaRecords = await this.db.media.toArray();
     for (const r of mediaRecords) {
-      const thumbPlain = await this.crypto.decryptToBlob(oldKey, r.thumbnailData);
-      await this.db.media.update(r.id, {
-        thumbnailData: await this.crypto.encryptBlob(dek, thumbPlain),
-      } as any);
       try {
         const oldBlob = await this.opfs.readBlob(r.opfsPath);
         const decrypted = await this.crypto.decryptFromBinary(oldKey, oldBlob, r.mimeType);
         const reencrypted = await this.crypto.encryptToBinary(dek, decrypted);
         await this.opfs.writeBlob(r.opfsPath, reencrypted);
-      } catch { /* skip missing blob */ }
+      } catch { /* missing/already-converted blob */ }
     }
 
-    // Wrap DEK with KEK_user (reuse existing salt) and KEK_master (new salt)
-    const existingMeta = await this.db.vaultMeta.get('singleton');
-    const saltUserBytes = existingMeta!.salt;
+    // Final atomic swap: write new VaultMeta and clear the in-progress flag.
     const kekUser = await this.crypto.deriveKey(passcode, saltUserBytes);
     const dekWrappedUser = await this.crypto.encrypt(kekUser, dekRaw.buffer as ArrayBuffer);
 
@@ -158,6 +188,7 @@ export class VaultService {
       verifierIv: verifier.iv,
       verifierCt: verifier.ct,
       format: 'v2',
+      // migrationInProgress intentionally omitted = cleared
     });
 
     this.key = dek;

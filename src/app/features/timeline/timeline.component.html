@@ -4,6 +4,13 @@
     <app-theme-toggle />
   </header>
 
+  @if (showPersistBanner()) {
+    <div class="persist-banner">
+      <span>Browser may evict diary data. Back up regularly.</span>
+      <button class="banner-x" (click)="dismissPersistBanner()" aria-label="Dismiss">✕</button>
+    </div>
+  }
+
   @if (viewMode() === 'timeline') {
   <div class="search-bar">
     <div class="search-wrap">

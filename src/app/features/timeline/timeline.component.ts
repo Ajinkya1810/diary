@@ -7,6 +7,7 @@ import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
 import { SearchService } from '../../core/search/search.service';
 import { TagService } from '../../core/tag/tag.service';
+import { StorageService } from '../../core/storage/storage.service';
 import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
 interface MonthGroup { label: string; entries: Entry[]; }
@@ -44,11 +45,16 @@ export class TimelineComponent implements OnInit, OnDestroy {
     private mediaSvc: MediaService,
     private searchSvc: SearchService,
     private tagSvc: TagService,
+    public storage: StorageService,
     private router: Router,
   ) {}
 
+  showPersistBanner(): boolean { return this.storage.shouldShowPersistBanner(); }
+  dismissPersistBanner(): void { this.storage.dismissPersistBanner(); }
+
   async ngOnInit() {
     await this.entrySvc.purgeExpired().catch(() => 0);
+    this.maybeReapOrphans();
     const [all, tags] = await Promise.all([this.entrySvc.listAll(), this.tagSvc.listAll()]);
     this.allEntries = all;
     this.tagMap.set(new Map(tags.map(t => [t.id, t])));
@@ -241,6 +247,14 @@ export class TimelineComponent implements OnInit, OnDestroy {
   private currentYM() {
     const d = new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
+  }
+
+  private maybeReapOrphans() {
+    const last = +(localStorage.getItem('diary.lastOrphanReap') ?? 0);
+    if (Date.now() - last < 24 * 60 * 60 * 1000) return;
+    this.mediaSvc.reapOrphans()
+      .then(() => localStorage.setItem('diary.lastOrphanReap', String(Date.now())))
+      .catch(() => { /* ignore */ });
   }
 
   private todayStr(): string { return this.formatDate(new Date()); }

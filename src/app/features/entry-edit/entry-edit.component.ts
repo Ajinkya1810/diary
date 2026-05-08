@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { MediaRecord, Tag } from '../../core/db/db.service';
 import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
+import { OpfsService } from '../../core/media/opfs.service';
 import { TagService } from '../../core/tag/tag.service';
 import { DraftService } from '../../core/draft/draft.service';
 import { HapticService } from '../../core/haptic/haptic.service';
@@ -46,6 +47,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   existingMedia: MediaRecord[] = [];
   existingThumbUrls = new Map<string, string>();
   removedMediaIds: string[] = [];
+  removedMediaPaths: string[] = [];
   pendingMedia: PendingMedia[] = [];
   private ownedUrls: string[] = [];
 
@@ -64,6 +66,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   constructor(
     private entrySvc: EntryService,
     private mediaSvc: MediaService,
+    private opfs: OpfsService,
     private tagSvc: TagService,
     private draftSvc: DraftService,
     private haptic: HapticService,
@@ -248,44 +251,71 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   }
 
   removeExisting(id: string) {
+    const rec = this.existingMedia.find(m => m.id === id);
+    if (rec) this.removedMediaPaths.push(rec.opfsPath);
     this.removedMediaIds.push(id);
     this.existingMedia = this.existingMedia.filter(m => m.id !== id);
   }
+
+  private existingMediaPathsToRemove(): string[] { return [...this.removedMediaPaths]; }
 
   async save() {
     this.saving.set(true);
     this.mediaError.set('');
     const now = Date.now();
     const tagIds = [...this.selectedTagIds];
-    let entryId = this.entryId;
+    const entryId = this.entryId ?? crypto.randomUUID();
+    const isNew = !this.isEdit;
+
     try {
-      if (this.isEdit && entryId) {
-        await this.entrySvc.update(entryId, {
-          title: this.title, date: this.date,
-          bodyHtml: this.bodyHtml, bodyText: this.bodyText,
-          mood: this.mood, tagIds, updatedAt: now,
-        });
-      } else {
-        entryId = await this.entrySvc.add({
-          title: this.title, date: this.date,
-          bodyHtml: this.bodyHtml, bodyText: this.bodyText,
-          mood: this.mood, tagIds, mediaIds: [],
-          createdAt: now, updatedAt: now,
-        });
-      }
-      for (const mid of this.removedMediaIds) {
-        const rec = await this.mediaSvc.getEntryMedia(entryId!).then(ms => ms.find(m => m.id === mid));
-        if (rec) await this.mediaSvc.deleteMedia(rec, entryId!);
-      }
+      // 1. Pre-encrypt all pending media (CPU + memory; no DB or OPFS yet).
+      //    If any fails, we abort before touching DB.
+      const prepared = [];
       for (const p of this.pendingMedia) {
-        try { await this.mediaSvc.addMedia(entryId!, p.file); }
-        catch (e: any) { this.mediaError.set(e.message ?? 'Failed to save media.'); }
+        try {
+          prepared.push(await this.mediaSvc.prepareMedia(entryId, p.file));
+        } catch (e: any) {
+          this.mediaError.set(e.message ?? 'Failed to encode media.');
+          this.saving.set(false);
+          return;
+        }
       }
+
+      // 2. Capture OPFS paths of media we're about to drop (need before DB delete).
+      const removedPaths = this.existingMediaPathsToRemove();
+
+      // 3. Atomic DB transaction: entry write + media records + mediaIds update.
+      await this.entrySvc.saveAtomic({
+        entryId,
+        isNew,
+        fields: {
+          title: this.title,
+          date: this.date,
+          bodyHtml: this.bodyHtml,
+          bodyText: this.bodyText,
+          mood: this.mood,
+          tagIds,
+        },
+        addMediaRecords: prepared.map(p => p.record),
+        removeMediaIds: this.removedMediaIds,
+        now,
+      });
+
+      // 4. Post-commit OPFS work (best-effort; orphan reaper handles leftovers).
+      for (const p of prepared) {
+        try { await this.opfs.writeBlob(p.record.opfsPath, p.encryptedBlob); }
+        catch { /* DB has the record; reaper or next save can clean up */ }
+      }
+      for (const path of removedPaths) {
+        await this.opfs.deleteBlob(path).catch(() => { /* reaper */ });
+      }
+
       this.draftSvc.clear(this.draftSlot);
-      if (this.draftSlot === 'new' && entryId) this.draftSvc.clear(entryId);
+      if (this.draftSlot === 'new') this.draftSvc.clear(entryId);
       this.haptic.success();
       this.router.navigate(['/entry', entryId]);
-    } catch {
+    } catch (e: any) {
+      this.mediaError.set(e?.message ?? 'Save failed. Your data is safe — try again.');
       this.saving.set(false);
     }
   }

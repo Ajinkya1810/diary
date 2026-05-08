@@ -50,6 +50,7 @@ export interface VaultMeta {
   saltMaster?: Uint8Array;                // KDF salt for master "1810" KEK
   dekWrappedUser?: EncryptedField;        // DEK encrypted with KEK_user
   dekWrappedMaster?: EncryptedField;      // DEK encrypted with KEK_master
+  migrationInProgress?: { fromFormat: 'v1'; startedAt: number };
 }
 
 @Injectable({ providedIn: 'root' })

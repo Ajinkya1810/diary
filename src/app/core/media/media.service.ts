@@ -20,7 +20,11 @@ export class MediaService {
     private crypto: CryptoService,
   ) {}
 
-  async addMedia(entryId: string, file: File): Promise<MediaRecord> {
+  /**
+   * Encrypt + compress + write to OPFS. No DB writes here; caller is responsible
+   * for committing the record (and for OPFS rollback if commit fails).
+   */
+  async prepareMedia(entryId: string, file: File): Promise<{ record: MediaRecord; encryptedBlob: Blob }> {
     const key = this.vault.requireKey();
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
@@ -49,11 +53,7 @@ export class MediaService {
       : isVideo ? await this.videoThumbnail(file)
       : await this.audioThumbnail();
 
-    // Encrypt blob → IV-prefixed binary in OPFS
     const encryptedBlob = await this.crypto.encryptToBinary(key, rawBlob);
-    await this.opfs.writeBlob(opfsPath, encryptedBlob);
-
-    // Encrypt thumbnail → EncryptedField in DB
     const thumbnailData = await this.crypto.encryptBlob(key, thumbRaw);
 
     const record: MediaRecord = {
@@ -65,12 +65,26 @@ export class MediaService {
       createdAt: Date.now(),
     };
 
+    return { record, encryptedBlob };
+  }
+
+  /**
+   * D3 ordering: write the DB record first, then the OPFS blob. If OPFS write
+   * fails, roll back the DB record so we never leave dangling references.
+   */
+  async addMedia(entryId: string, file: File): Promise<MediaRecord> {
+    const { record, encryptedBlob } = await this.prepareMedia(entryId, file);
     await this.db.media.add(record);
+    try {
+      await this.opfs.writeBlob(record.opfsPath, encryptedBlob);
+    } catch (e) {
+      await this.db.media.delete(record.id).catch(() => {});
+      throw e;
+    }
     await this.db.entries.where('id').equals(entryId).modify(e => {
       if (!e.mediaIds) e.mediaIds = [];
-      e.mediaIds.push(id);
+      e.mediaIds.push(record.id);
     });
-
     return record;
   }
 
@@ -95,6 +109,24 @@ export class MediaService {
 
   async getEntryMedia(entryId: string): Promise<MediaRecord[]> {
     return this.db.media.where('entryId').equals(entryId).sortBy('createdAt');
+  }
+
+  /**
+   * Walk all OPFS blobs under media/ and remove any that no MediaRecord points to.
+   * Safe to call repeatedly; callers should debounce (e.g. once per day on app boot).
+   */
+  async reapOrphans(): Promise<number> {
+    const records = await this.db.media.toArray();
+    const known = new Set(records.map(r => r.opfsPath));
+    const onDisk = await this.opfs.listFiles('media').catch(() => [] as string[]);
+    let removed = 0;
+    for (const path of onDisk) {
+      if (!known.has(path)) {
+        await this.opfs.deleteBlob(path).catch(() => {});
+        removed++;
+      }
+    }
+    return removed;
   }
 
   async checkQuota(): Promise<{ usedMb: number; totalMb: number; pct: number } | null> {
