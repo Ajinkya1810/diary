@@ -328,6 +328,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.7.0 | 2026-05-08 | feat: on-this-day card on timeline (entries from same MM-DD in past years), HapticService (vibrate on mood + save), PWA install banner via beforeinstallprompt with 14d dismiss memory, bottom nav bar (List/Calendar/+/Settings) replaces FAB |
 | 1.7.1 | 2026-05-08 | remove: 4-theme picker (Neon/OLED/Midnight/Sunset). Keep dark/light mode only. ThemeService simplified to mode-only. Settings theme section + theme-card SCSS dropped |
 | 1.8.0 | 2026-05-08 | feat: Help & About screen at /help. Sections: hero, features list, 6-step how-to, privacy info, tips, version. Linked from Settings as a card row |
+| 1.8.1 | 2026-05-08 | move: Help button into ThemeToggleComponent — ⓘ now renders next to ☀/🌙 in every header. Settings help link removed |
 
 ---
 

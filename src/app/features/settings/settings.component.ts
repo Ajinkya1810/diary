@@ -100,5 +100,4 @@ export class SettingsComponent implements OnInit {
   }
 
   back() { this.router.navigate(['/timeline']); }
-  openHelp() { this.router.navigate(['/help']); }
 }
