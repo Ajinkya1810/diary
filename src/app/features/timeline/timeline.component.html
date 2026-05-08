@@ -1,13 +1,7 @@
 <div class="timeline-page">
   <header class="top-bar">
     <h1>Diary</h1>
-    <div class="top-actions">
-      <app-theme-toggle />
-      <button class="btn-icon" (click)="toggleView()" [attr.aria-label]="viewMode() === 'timeline' ? 'Calendar view' : 'Timeline view'">
-        @if (viewMode() === 'timeline') { ▦ } @else { ☰ }
-      </button>
-      <button class="btn-icon" (click)="settings()" aria-label="Settings">⚙</button>
-    </div>
+    <app-theme-toggle />
   </header>
 
   @if (viewMode() === 'timeline') {
@@ -81,6 +75,18 @@
     </div>
 
   } @else {
+    @if (onThisDay().length > 0) {
+      <div class="otd-card">
+        <div class="otd-header">✦ On this day</div>
+        @for (memory of onThisDay(); track memory.id) {
+          <button class="otd-row" (click)="openEntry(memory.id)">
+            <span class="otd-years">{{ yearsAgo(memory.date) }}</span>
+            <span class="otd-title">{{ memory.title || 'Untitled' }}</span>
+            @if (moodEmoji(memory.mood)) { <span class="otd-mood">{{ moodEmoji(memory.mood) }}</span> }
+          </button>
+        }
+      </div>
+    }
     <div class="groups">
       @for (group of groups(); track group.label) {
         <div class="month-group">
@@ -93,7 +99,18 @@
     </div>
   }
 
-  <button class="fab" (click)="newEntry()" aria-label="New entry">+</button>
+  <nav class="bottom-nav">
+    <button class="nav-btn" [class.active]="viewMode() === 'timeline'" (click)="setView('timeline')" aria-label="List">
+      <span class="nav-icon">☰</span><span class="nav-label">List</span>
+    </button>
+    <button class="nav-btn" [class.active]="viewMode() === 'calendar'" (click)="setView('calendar')" aria-label="Calendar">
+      <span class="nav-icon">▦</span><span class="nav-label">Calendar</span>
+    </button>
+    <button class="nav-fab" (click)="newEntry()" aria-label="New entry">+</button>
+    <button class="nav-btn" (click)="settings()" aria-label="Settings">
+      <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
+    </button>
+  </nav>
 </div>
 
 <ng-template #entryRow let-entry>

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SwUpdate } from '@angular/service-worker';
 import { VaultService } from '../../core/vault/vault.service';
+import { InstallService } from '../../core/install/install.service';
 import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 import { BUILD_LABEL } from '../../version';
 
@@ -24,7 +25,12 @@ export class LockScreenComponent implements OnInit {
   busy = signal(false);
   refreshing = signal(false);
 
-  constructor(private vault: VaultService, private router: Router, private swUpdate: SwUpdate) {}
+  constructor(
+    private vault: VaultService,
+    private router: Router,
+    private swUpdate: SwUpdate,
+    public install: InstallService,
+  ) {}
 
   async hardRefresh() {
     this.refreshing.set(true);

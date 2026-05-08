@@ -7,6 +7,7 @@ import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
 import { TagService } from '../../core/tag/tag.service';
 import { DraftService } from '../../core/draft/draft.service';
+import { HapticService } from '../../core/haptic/haptic.service';
 import { EditorComponent } from '../../shared/editor/editor.component';
 import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
@@ -65,6 +66,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     private mediaSvc: MediaService,
     private tagSvc: TagService,
     private draftSvc: DraftService,
+    private haptic: HapticService,
     private router: Router,
     private route: ActivatedRoute,
   ) {}
@@ -201,7 +203,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   todayStr(): string { return new Date().toISOString().slice(0, 10); }
   onHtmlChange(html: string) { this.bodyHtml = html; }
   onTextChange(text: string) { this.bodyText = text; }
-  setMood(m: number) { this.mood = this.mood === m ? null : m; }
+  setMood(m: number) { this.mood = this.mood === m ? null : m; this.haptic.select(); }
   thumbFor(id: string): string { return this.existingThumbUrls.get(id) ?? ''; }
   isTagSelected(id: string): boolean { return this.selectedTagIds.has(id); }
 
@@ -281,6 +283,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
       }
       this.draftSvc.clear(this.draftSlot);
       if (this.draftSlot === 'new' && entryId) this.draftSvc.clear(entryId);
+      this.haptic.success();
       this.router.navigate(['/entry', entryId]);
     } catch {
       this.saving.set(false);

@@ -1,4 +1,12 @@
 <div class="lock-page">
+  @if (install.available()) {
+    <div class="install-banner">
+      <span>Install Diary as app for faster access</span>
+      <button class="btn-install" (click)="install.prompt()">Install</button>
+      <button class="btn-dismiss" (click)="install.dismiss()" aria-label="Dismiss">✕</button>
+    </div>
+  }
+
   @if (mode() === 'loading') {
     <div class="spinner">…</div>
   }

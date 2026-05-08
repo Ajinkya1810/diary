@@ -28,6 +28,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   thumbUrls = signal<Map<string, string[]>>(new Map());
   tagMap = signal<Map<string, Tag>>(new Map());
   filterTagId = signal<string | null>(null);
+  onThisDay = signal<Entry[]>([]);
   searchQuery = '';
   viewMode = signal<'timeline' | 'calendar'>(
     (localStorage.getItem(VIEW_MODE_KEY) as 'timeline' | 'calendar') ?? 'timeline'
@@ -53,8 +54,28 @@ export class TimelineComponent implements OnInit, OnDestroy {
     this.searchSvc.buildIndex(all);
     this.applyFilter();
     this.entriesByDate.set(new Map(all.map(e => [e.date, e])));
+    this.computeOnThisDay(all);
     this.loading.set(false);
     await this.loadThumbnails(all);
+  }
+
+  private computeOnThisDay(all: Entry[]) {
+    const today = new Date();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const yyyy = today.getFullYear();
+    const matches = all.filter(e => {
+      const [y, m, d] = e.date.split('-');
+      return m === mm && d === dd && +y < yyyy;
+    });
+    this.onThisDay.set(matches);
+  }
+
+  yearsAgo(date: string): string {
+    const y = +date.split('-')[0];
+    const diff = new Date().getFullYear() - y;
+    if (diff <= 0) return '';
+    return diff === 1 ? '1 year ago' : `${diff} years ago`;
   }
 
   private applyFilter() {
@@ -150,9 +171,12 @@ export class TimelineComponent implements OnInit, OnDestroy {
   // ---------- Calendar view ----------
 
   toggleView() {
-    const next = this.viewMode() === 'timeline' ? 'calendar' : 'timeline';
-    this.viewMode.set(next);
-    localStorage.setItem(VIEW_MODE_KEY, next);
+    this.setView(this.viewMode() === 'timeline' ? 'calendar' : 'timeline');
+  }
+
+  setView(v: 'timeline' | 'calendar') {
+    this.viewMode.set(v);
+    localStorage.setItem(VIEW_MODE_KEY, v);
   }
 
   calendarLabel(): string {
