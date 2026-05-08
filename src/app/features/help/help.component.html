@@ -1,0 +1,110 @@
+<div class="help-page">
+  <header class="top-bar">
+    <button class="btn-ghost" (click)="back()">← Back</button>
+    <span class="page-title">Help &amp; About</span>
+    <app-theme-toggle />
+  </header>
+
+  <div class="content">
+
+    <section class="card hero">
+      <div class="hero-icon">📔</div>
+      <h1>Diary</h1>
+      <p class="tagline">Your private, encrypted journal — fully offline.</p>
+    </section>
+
+    <section class="card">
+      <h2>What it does</h2>
+      <ul class="feature-list">
+        <li><b>Daily entries</b> — write text with formatting, set mood, tag, and save.</li>
+        <li><b>Photos &amp; videos</b> — attach to any entry. Encrypted on device.</li>
+        <li><b>Voice notes</b> — tap 🎤 to record audio (max 5 min).</li>
+        <li><b>Calendar view</b> — month grid with mood at a glance.</li>
+        <li><b>On this day</b> — see entries from same date in past years.</li>
+        <li><b>Search</b> — fast prefix search across titles and bodies.</li>
+        <li><b>Tags</b> — organize entries; tap a chip to filter.</li>
+        <li><b>Backup &amp; restore</b> — encrypted .diarybackup file you control.</li>
+        <li><b>Dark &amp; light mode</b> — toggle ☀/🌙 anywhere.</li>
+        <li><b>PWA</b> — install to home screen, runs offline.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>How to use</h2>
+
+      <div class="how-block">
+        <div class="how-step">1.</div>
+        <div>
+          <div class="how-title">Create an entry</div>
+          <p>Tap <b>+</b> in bottom nav. Add title, pick a mood, write. Tap <b>Save</b>.</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">2.</div>
+        <div>
+          <div class="how-title">Attach media</div>
+          <p><b>+ Photo / Video</b> picks from library. <b>📷 Camera</b> opens the camera. <b>🎤 Record</b> starts a voice note (tap again to stop).</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">3.</div>
+        <div>
+          <div class="how-title">Browse</div>
+          <p>Use <b>List</b> for chronological view, <b>Calendar</b> for month overview. Tap a calendar day to open that entry, or to start a new one for that date.</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">4.</div>
+        <div>
+          <div class="how-title">Search &amp; filter</div>
+          <p>Type in the search bar. Tap a tag chip on any entry to filter the timeline by that tag. Tap the pink filter pill to clear.</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">5.</div>
+        <div>
+          <div class="how-title">Back up</div>
+          <p>Settings → <b>Encrypted Backup</b> downloads a .json file. Save it somewhere safe (cloud drive, AirDrop). Restore on another device with the same passcode.</p>
+        </div>
+      </div>
+
+      <div class="how-block">
+        <div class="how-step">6.</div>
+        <div>
+          <div class="how-title">If your device dies</div>
+          <p>Open Diary on a new device, set up with your passcode, then go to Settings → <b>Restore Backup</b> and pick the file. All entries and media return.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Privacy &amp; security</h2>
+      <ul class="feature-list">
+        <li><b>Local-only.</b> No server, no cloud, no analytics. Everything stays in your browser/device.</li>
+        <li><b>Encrypted.</b> Entries, photos, videos, audio — all AES-GCM 256-bit. Your passcode derives the key.</li>
+        <li><b>No recovery.</b> If you forget your passcode, data is gone forever. Back up.</li>
+        <li><b>Auto-lock.</b> App locks after 2 minutes in background.</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Tips</h2>
+      <ul class="feature-list">
+        <li>Long-press the calendar month title to jump back to the current month.</li>
+        <li>Drafts auto-save every 3 seconds while editing — close the tab safely.</li>
+        <li>Theme toggle (☀/🌙) sits next to the version label on the lock screen and in every header.</li>
+        <li>Hard refresh: tap ↻ next to the version on the lock screen to fetch the latest update.</li>
+      </ul>
+    </section>
+
+    <section class="card about">
+      <p class="version">{{ buildLabel }}</p>
+      <p class="made-with">Made for personal use. Open source, no tracking.</p>
+    </section>
+
+  </div>
+</div>

@@ -327,6 +327,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.6.0 | 2026-05-08 | feat: light mode + dark/light toggle on every screen. Theme split into mode (dark/light) + theme (accent palette). data-mode and data-theme on <html>. ThemeToggleComponent shared button placed in lock/timeline/entry-detail/entry-edit/settings headers |
 | 1.7.0 | 2026-05-08 | feat: on-this-day card on timeline (entries from same MM-DD in past years), HapticService (vibrate on mood + save), PWA install banner via beforeinstallprompt with 14d dismiss memory, bottom nav bar (List/Calendar/+/Settings) replaces FAB |
 | 1.7.1 | 2026-05-08 | remove: 4-theme picker (Neon/OLED/Midnight/Sunset). Keep dark/light mode only. ThemeService simplified to mode-only. Settings theme section + theme-card SCSS dropped |
+| 1.8.0 | 2026-05-08 | feat: Help & About screen at /help. Sections: hero, features list, 6-step how-to, privacy info, tips, version. Linked from Settings as a card row |
 
 ---
 
