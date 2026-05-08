@@ -53,6 +53,7 @@
   }
 
   <div class="build-footer">
+    <app-theme-toggle />
     <span class="build-label">{{ buildLabel }}</span>
     <button class="btn-refresh" (click)="hardRefresh()" [disabled]="refreshing()" title="Check for update">↻</button>
   </div>

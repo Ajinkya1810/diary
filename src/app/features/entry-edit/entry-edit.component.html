@@ -2,9 +2,12 @@
   <header class="top-bar">
     <button class="btn-ghost" (click)="cancel()">Cancel</button>
     <span class="page-title">{{ isEdit ? 'Edit' : 'New Entry' }}</span>
-    <button class="btn-save" (click)="save()" [disabled]="saving()">
-      {{ saving() ? '…' : 'Save' }}
-    </button>
+    <div class="header-right">
+      <app-theme-toggle />
+      <button class="btn-save" (click)="save()" [disabled]="saving()">
+        {{ saving() ? '…' : 'Save' }}
+      </button>
+    </div>
   </header>
 
   @if (quotaWarning()) {

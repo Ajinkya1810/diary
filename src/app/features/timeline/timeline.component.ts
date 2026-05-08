@@ -7,6 +7,7 @@ import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
 import { SearchService } from '../../core/search/search.service';
 import { TagService } from '../../core/tag/tag.service';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
 interface MonthGroup { label: string; entries: Entry[]; }
 interface CalendarCell { date: string; day: number; inMonth: boolean; isToday: boolean; entry?: Entry; }
@@ -16,7 +17,7 @@ const VIEW_MODE_KEY = 'diary.viewMode';
 @Component({
   selector: 'app-timeline',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeToggleComponent],
   templateUrl: './timeline.component.html',
   styleUrl: './timeline.component.scss',
 })

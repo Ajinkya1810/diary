@@ -6,6 +6,7 @@ import { Tag } from '../../core/db/db.service';
 import { TagService } from '../../core/tag/tag.service';
 import { ExportService } from '../../core/export/export.service';
 import { ThemeService, Theme } from '../../core/theme/theme.service';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 import { BUILD_LABEL } from '../../version';
 
 type ActionState = 'idle' | 'busy' | 'done' | 'error';
@@ -13,7 +14,7 @@ type ActionState = 'idle' | 'busy' | 'done' | 'error';
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeToggleComponent],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
 })

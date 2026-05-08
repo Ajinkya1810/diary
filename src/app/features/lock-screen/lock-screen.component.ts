@@ -4,12 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { SwUpdate } from '@angular/service-worker';
 import { VaultService } from '../../core/vault/vault.service';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 import { BUILD_LABEL } from '../../version';
 
 @Component({
   selector: 'app-lock-screen',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ThemeToggleComponent],
   templateUrl: './lock-screen.component.html',
   styleUrl: './lock-screen.component.scss',
 })

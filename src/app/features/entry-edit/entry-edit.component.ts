@@ -8,6 +8,7 @@ import { MediaService } from '../../core/media/media.service';
 import { TagService } from '../../core/tag/tag.service';
 import { DraftService } from '../../core/draft/draft.service';
 import { EditorComponent } from '../../shared/editor/editor.component';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
 
@@ -16,7 +17,7 @@ interface PendingMedia { file: File; previewUrl: string; type: 'image' | 'video'
 @Component({
   selector: 'app-entry-edit',
   standalone: true,
-  imports: [CommonModule, FormsModule, EditorComponent],
+  imports: [CommonModule, FormsModule, EditorComponent, ThemeToggleComponent],
   templateUrl: './entry-edit.component.html',
   styleUrl: './entry-edit.component.scss',
 })

@@ -2,6 +2,7 @@
   <header class="top-bar">
     <h1>Diary</h1>
     <div class="top-actions">
+      <app-theme-toggle />
       <button class="btn-icon" (click)="toggleView()" [attr.aria-label]="viewMode() === 'timeline' ? 'Calendar view' : 'Timeline view'">
         @if (viewMode() === 'timeline') { ▦ } @else { ☰ }
       </button>

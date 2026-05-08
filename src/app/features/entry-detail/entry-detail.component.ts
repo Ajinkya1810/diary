@@ -5,6 +5,7 @@ import { Entry, MediaRecord, Tag } from '../../core/db/db.service';
 import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
 import { TagService } from '../../core/tag/tag.service';
+import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
@@ -13,7 +14,7 @@ interface LoadedMedia { record: MediaRecord; url: string; thumbUrl?: string; }
 @Component({
   selector: 'app-entry-detail',
   standalone: true,
-  imports: [CommonModule, DatePipe],
+  imports: [CommonModule, DatePipe, ThemeToggleComponent],
   templateUrl: './entry-detail.component.html',
   styleUrl: './entry-detail.component.scss',
 })

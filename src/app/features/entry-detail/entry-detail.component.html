@@ -1,9 +1,12 @@
 <div class="detail-page">
   <header class="top-bar">
     <button class="btn-ghost" (click)="back()">← Back</button>
-    @if (entry()) {
-      <button class="btn-edit" (click)="edit()">Edit</button>
-    }
+    <div class="header-actions">
+      <app-theme-toggle />
+      @if (entry()) {
+        <button class="btn-edit" (click)="edit()">Edit</button>
+      }
+    </div>
   </header>
 
   @if (entry(); as e) {
