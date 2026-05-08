@@ -9,7 +9,8 @@
 | Media storage | OPFS (Origin Private File System) | No size quota issues vs. IndexedDB blobs; iOS 17+ |
 | Rich text | TipTap (`@tiptap/core`, no `@tiptap/angular`) | @tiptap/angular doesn't exist; used raw ViewChild + ElementRef |
 | Crypto | Web Crypto API (browser-native) | AES-GCM 256, PBKDF2-SHA256, no JS library needed |
-| PDF | jsPDF | MIT, bundleable, text-only output |
+| Audio capture | `MediaRecorder` (audio/webm;opus) | In-app voice notes, max 5 min |
+| Theme | `data-mode` attribute + CSS vars | Dark + light, no theme libs |
 | Hosting | GitHub Pages + Actions | Free, static, no backend |
 
 ---
@@ -19,33 +20,35 @@
 ```
 src/app/
 ├── core/
-│   ├── auth/
-│   │   └── unlocked.guard.ts          # CanActivateFn — redirects to /lock if vault locked
-│   ├── crypto/
-│   │   └── crypto.service.ts          # All AES-GCM + PBKDF2 ops
-│   ├── db/
-│   │   └── db.service.ts              # Dexie schema + all interfaces
-│   ├── entry/
-│   │   └── entry.service.ts           # Transparent encrypt/decrypt layer over DB
-│   ├── export/
-│   │   └── export.service.ts          # Backup export/import + PDF
+│   ├── auth/unlocked.guard.ts        # CanActivateFn — redirects to /lock if vault locked
+│   ├── backup/backup.service.ts      # Auto rolling local IDB snapshots (last 3, debounced ≤1/day)
+│   ├── crypto/crypto.service.ts      # AES-GCM + PBKDF2 + raw key import
+│   ├── db/db.service.ts              # Dexie schema (v5) + interfaces
+│   ├── draft/draft.service.ts        # Encrypted localStorage drafts during editing
+│   ├── entry/entry.service.ts        # Encrypt/decrypt layer; saveAtomic; in-memory plaintext cache
+│   ├── export/export.service.ts     # Backup serialize/import + sha256 + structure validation
+│   ├── haptic/haptic.service.ts      # navigator.vibrate wrapper with enable toggle
+│   ├── install/install.service.ts    # beforeinstallprompt capture + dismiss memory
 │   ├── media/
-│   │   ├── media.service.ts           # Add/get/delete media, compression, quota
-│   │   └── opfs.service.ts            # Low-level OPFS path resolver
-│   ├── search/
-│   │   └── search.service.ts          # In-memory inverted index
-│   ├── tag/
-│   │   └── tag.service.ts             # Tag CRUD
-│   └── vault/
-│       └── vault.service.ts           # Passcode setup, unlock, lock, key in memory
+│   │   ├── media.service.ts          # prepareMedia + addMedia (DB-first ordering) + reapOrphans
+│   │   └── opfs.service.ts           # OPFS resolver, listFiles, dir handle cache, clearDir
+│   ├── search/search.service.ts      # Dexie-backed multi-entry token index (with in-memory fallback)
+│   ├── storage/storage.service.ts    # navigator.storage.persist + persisted-state signal + banner gating
+│   ├── tag/tag.service.ts            # Tag CRUD (names not encrypted)
+│   ├── theme/theme.service.ts        # Dark/light mode signal + persistence
+│   └── vault/vault.service.ts        # Passcode setup, DEK pattern, unlock paths, migration
 ├── features/
-│   ├── entry-detail/                  # Read-only view of one entry
-│   ├── entry-edit/                    # Create + edit entries
-│   ├── lock-screen/                   # Passcode setup + unlock UI
-│   ├── settings/                      # Tag management + backup/export
-│   └── timeline/                      # Entry list, search bar, month groups
+│   ├── backups/                       # /backups — snapshot list, Snapshot Now / Restore / Delete
+│   ├── entry-detail/                  # Read-only view; word count + reading time; audio + video preview
+│   ├── entry-edit/                    # Create + edit; atomic save; draft autosave; audio recording
+│   ├── help/                          # /help — static feature guide / how-to / privacy info
+│   ├── lock-screen/                   # Passcode setup + unlock; install banner; hard-refresh button
+│   ├── settings/                      # Tags, backups, trash, preferences (haptics), version
+│   ├── timeline/                      # Entry list, calendar view, search, on-this-day card, bottom-nav
+│   └── trash/                         # /trash — soft-deleted entries with restore + delete-forever
 └── shared/
-    └── editor/                        # TipTap wrapper component
+    ├── editor/                        # TipTap wrapper component
+    └── theme-toggle/                  # Header tools (☀/🌙 + ⓘ help)
 ```
 
 ---
@@ -59,12 +62,13 @@ interface Entry {
   date: string;           // 'YYYY-MM-DD'
   title: string;
   bodyHtml: string;
-  bodyText: string;       // strip of bodyHtml, used for search index + PDF
+  bodyText: string;       // strip of bodyHtml, used for search index
   mood: number | null;    // 1–5
   tagIds: string[];
   mediaIds: string[];
   createdAt: number;      // ms epoch
   updatedAt: number;
+  deletedAt?: number;     // soft-delete timestamp; undefined = active
 }
 
 // On-disk — text fields replaced with encrypted form
@@ -87,19 +91,36 @@ interface Tag {
 interface MediaRecord {
   id: string;
   entryId: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'audio';   // audio = MediaRecorder webm/opus
   mimeType: string;
   sizeBytes: number;
   opfsPath: string;             // e.g. 'media/2024/01/abc123.jpg'
-  thumbnailData: EncryptedField; // encrypted JPEG blob stored in DB
+  thumbnailData: EncryptedField; // encrypted JPEG blob (mic-icon for audio)
   createdAt: number;
 }
 
 interface VaultMeta {
   id: 'singleton';
-  salt: Uint8Array;         // 16 bytes, PBKDF2 salt
+  salt: Uint8Array;                          // KDF salt for KEK_user
   verifierIv: Uint8Array;
-  verifierCt: Uint8Array;   // encrypt('DIARY_VERIFIER_V1') — passcode check
+  verifierCt: Uint8Array;                    // encrypts 'DIARY_VERIFIER_V2' with DEK
+  format?: 'v2';                             // omitted for legacy v1 vaults
+  saltMaster?: Uint8Array;                   // KDF salt for KEK_master ("1810")
+  dekWrappedUser?: EncryptedField;           // DEK encrypted with KEK_user
+  dekWrappedMaster?: EncryptedField;         // DEK encrypted with KEK_master
+  migrationInProgress?: { fromFormat: 'v1'; startedAt: number };
+}
+
+interface BackupSnapshot {        // Dexie v4 — auto rolling local snapshots
+  id: string;
+  ts: number;
+  sizeBytes: number;
+  payload: Blob;                  // serialized backup JSON (already-encrypted entries)
+}
+
+interface SearchTokens {          // Dexie v5 — persistent search index
+  entryId: string;
+  tokens: string[];               // multi-entry indexed via `*tokens`
 }
 ```
 
@@ -112,10 +133,11 @@ v1  entries(id, date, createdAt, updatedAt) + tags(id, name)
 v2  + media(id, entryId, createdAt)
 v3  + vaultMeta(id)
     migrate: clear entries + media (plaintext → encrypted schema change)
+v4  + backupSnapshots(id, ts)              // auto rolling local backups (1.13.0)
+v5  + searchTokens(entryId, *tokens)       // persistent multi-entry search index (1.13.0)
 ```
 
-No v4 yet. Future changes that add fields don't need migration (Dexie ignores unknown fields).
-Changes that encrypt previously-unencrypted fields need a version bump + migration.
+Adding fields to existing tables doesn't need a version bump (Dexie ignores unknown fields). Bump only when adding tables or changing index schemas.
 
 ---
 
@@ -143,8 +165,14 @@ So user's normal passcode unlocks via path 1. Master code "1810" unlocks via pat
 ### Master code
 Hardcoded `MASTER_CODE = '1810'` in VaultService. Personal-use signature backdoor. Anyone with repo access can derive it — acceptable for personal app.
 
-### Migration (v1 → v2)
-On first unlock with old passcode: decrypt all entries+media with old key → generate DEK → re-encrypt everything with DEK → wrap DEK with both KEKs → write new VaultMeta.
+### Migration (v1 → v2) — crash-safe (1.12.0)
+On first unlock with old passcode:
+1. Write `migrationInProgress: { fromFormat: 'v1', startedAt }` to VaultMeta BEFORE any work.
+2. Inside a single Dexie transaction: decrypt every entry's text fields and every media thumbnail with the old key, re-encrypt with the new DEK.
+3. Outside the transaction (OPFS isn't transactional): re-encrypt OPFS media blobs sequentially.
+4. Final atomic swap: write the new v2 VaultMeta with `dekWrappedUser`, `dekWrappedMaster`, and the new verifier; the `migrationInProgress` field is omitted (cleared).
+
+If the app crashes between steps, the next unlock detects the lingering flag and surfaces a recovery prompt. Auto-resume is intentionally not attempted (mixed-key state isn't safe to fix in-place).
 
 ### Verifier pattern
 v2 uses verifier `'DIARY_VERIFIER_V2'` encrypted with DEK. Used to confirm a successful unwrap (since AES-GCM throws on bad MAC anyway, verifier mostly informational).
@@ -171,24 +199,25 @@ Decrypted by `MediaService.getThumbnailBlob()`.
 
 ## Search
 
-In-memory inverted index. Rebuilt from plaintext entries every time Timeline loads.
+Persistent inverted index in Dexie `searchTokens` (multi-entry index on `*tokens`). Synced incrementally — rebuilds only changed entries.
 
 ```
 tokenize(text):
   lowercase → split on /[^a-z0-9]+/ → filter length 2–50 → deduplicate
 
-buildIndex(entries):
-  for each entry: tokenize(title + ' ' + bodyText) → Map<token, Set<entryId>>
+ensureIndex(entries):                     // called from timeline.ngOnInit
+  for each entry: compare current tokens vs persisted; put if changed
+  for each persisted row not in entries: delete
 
-search(query):
-  tokenize(query) → for each token, prefix-match all keys in index
-  → intersect result sets across tokens (AND logic)
-  → returns Set<entryId> | null (null = empty query)
+search(query):                            // async, IDB-backed
+  tokenize(query) → for each token: db.searchTokens.where('tokens').startsWith(token)
+  → intersect entry-id sets across tokens (AND logic)
+  → returns Promise<Set<entryId> | null>  (null = empty query)
 ```
 
-Prefix match means "hap" matches entries containing "happy", "happening", etc.
+Tokens are stored plaintext (same trade-off as `Tag.name`). If/when this becomes unacceptable, swap for HMAC tokens keyed by the DEK.
 
-Index is NOT persisted. Cleared on lock. Rebuilt on each navigation to /timeline.
+Backwards-compat: `SearchService.buildIndex(entries)` and `searchSync(query)` keep an in-memory map for any caller not yet migrated to async.
 
 ---
 
@@ -212,30 +241,56 @@ File → videoThumbnail (seek to 0.1s, canvas draw) → JPEG Blob
      → encryptBlob → EncryptedField → MediaRecord.thumbnailData
 ```
 
+### Add audio (1.3.0)
+```
+MediaRecorder (audio/webm;opus) → Blob
+     → validate (≤20MB, ≤300s)
+     → encryptToBinary → [IV|CT] Blob → OPFS write
+
+audioThumbnail() — 200×200 mic-icon JPEG (canvas draw of 🎤)
+     → encryptBlob → MediaRecord.thumbnailData
+```
+
+### Write order (D3-hardened in 1.12.0)
+`addMedia` calls `prepareMedia` (CPU-bound encrypt + thumb), then:
+1. `db.media.add(record)` — DB row first
+2. `opfs.writeBlob(record.opfsPath, encryptedBlob)` — blob second
+3. On OPFS write failure → `db.media.delete(record.id)` to roll back
+
+A daily reaper (`MediaService.reapOrphans`) walks `OpfsService.listFiles('media')` and removes any blob whose record is missing.
+
 ### OPFS path format
 `media/{year}/{month}/{uuid}.{ext}`
 Example: `media/2024/05/3f2a1b...jpg`
 
 ---
 
-## Backup Format (.diarybackup)
+## Backup Format
 
 JSON file. All data stays encrypted (no decryption during export).
 
+Two formats supported on import:
+- **`version: 1`** — older backups (no checksum). Still importable for backwards compat.
+- **`version: 2`** — current. Same shape as v1 plus a top-level `checksum` field (sha256 hex over the canonical-JSON of the rest of the payload). Verified before import; mismatch aborts.
+
 ```json
 {
-  "version": 1,
+  "version": 2,
   "exportedAt": 1714900000000,
   "vaultMeta": {
     "salt": "<base64>",
     "verifierIv": "<base64>",
-    "verifierCt": "<base64>"
+    "verifierCt": "<base64>",
+    "format": "v2",
+    "saltMaster": "<base64>",
+    "dekWrappedUser":   { "iv": "<base64>", "ct": "<base64>" },
+    "dekWrappedMaster": { "iv": "<base64>", "ct": "<base64>" }
   },
   "entries": [
     {
       "id": "...",
       "date": "2024-05-01",
-      "title": { "iv": "<base64>", "ct": "<base64>" },
+      "title":    { "iv": "<base64>", "ct": "<base64>" },
       "bodyHtml": { "iv": "<base64>", "ct": "<base64>" },
       "bodyText": { "iv": "<base64>", "ct": "<base64>" },
       "mood": 4,
@@ -247,22 +302,28 @@ JSON file. All data stays encrypted (no decryption during export).
   ],
   "tags": [{ "id": "...", "name": "travel" }],
   "media": {
-    "records": [{ ...MediaRecord with thumbnailData as base64... }],
+    "records": [{ "...": "MediaRecord with thumbnailData as base64" }],
     "blobs": {
       "media/2024/05/abc.jpg": "<base64 of encrypted OPFS blob>"
     }
-  }
+  },
+  "checksum": "<sha256 hex>"
 }
 ```
 
-### Import behavior
-- Clears entire DB (entries, media, tags, vaultMeta)
-- Clears OPFS `media/` directory
-- Restores all data from backup
-- Forces lock — user re-enters passcode (which must match backup's passcode, because vaultMeta/salt is restored)
+### Import behavior (D1-hardened in 1.12.0)
+1. Parse JSON; throw if invalid.
+2. Validate top-level shape AND every entry/media record before touching DB.
+3. If `version: 2`, recompute and verify the sha256 checksum.
+4. Wrap clears + bulkPuts in a single Dexie transaction. Any failure rolls back automatically — original data intact.
+5. After DB transaction commits, clear OPFS `media/` and write new blobs.
+6. Force lock — user re-enters passcode.
 
 ### Cross-device restore
-Works if both devices use the same passcode. The backup includes the salt, so `PBKDF2(passcode, salt)` produces the same key → can decrypt everything.
+Works if both devices use the same passcode. The backup includes the salt and the wrapped DEKs, so `PBKDF2(passcode, salt) → KEK → unwrap DEK` produces the same DEK on both devices.
+
+### Auto rolling local snapshots (B1, 1.13.0)
+After every save, `BackupService.scheduleSnapshot()` debounces 5 min, then writes a snapshot row to `backupSnapshots` (capped at 1/day, max 3 rows kept). Snapshots are full backup blobs sitting in IndexedDB. Restorable from `/backups`. Independent of file-based exports.
 
 ---
 
@@ -305,11 +366,20 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | Phase | What was built |
 |---|---|
 | 0 | Angular scaffold, GitHub Actions deploy to GitHub Pages, PWA manifest + service worker, iOS install instructions |
-| 1 | Timeline (month groups, mood emoji, text preview), entry CRUD (create/edit/delete), TipTap rich text editor, neon black theme |
+| 1 | Timeline (month groups, mood emoji, text preview), entry CRUD, TipTap rich text editor, neon black theme |
 | 2 | OPFS service, media attach (photo + video), image compression (2048px), video validation (50MB/30s), thumbnail generation, lightbox, storage quota warning |
 | 3 | CryptoService (AES-GCM + PBKDF2), VaultService (in-memory key, passcode setup/unlock, verifier), EntryService (encrypt/decrypt layer), lock screen UI, auto-lock 2min, all routes guarded |
 | 4 | SearchService (inverted index, prefix match), TagService (CRUD), Settings page, tag picker in entry-edit, tag chips on timeline + detail, search bar with debounce, "Edited X ago" on entry-detail |
-| 5 | ExportService, encrypted backup download (.diarybackup), backup restore (cross-device), PDF export (jsPDF, cover + one page per entry), iOS share sheet integration |
+| 5 | ExportService, encrypted backup download (.diarybackup), backup restore (cross-device), iOS share sheet integration |
+| 6 | Master code "1810" + DEK pattern, transparent v1→v2 migration (1.1.0). PDF export removed (1.0.4) |
+| 7 | Calendar view toggle on timeline (1.2.0); audio note recording via MediaRecorder (1.3.0) |
+| 8 | Theme system (4 palettes 1.4.0 → simplified to dark/light only 1.7.1; toggle on every header 1.6.0) |
+| 9 | Polish cluster — encrypted draft autosave, word count, tag filter, backup reminder, SwUpdate auto-prompt (1.5.0) |
+| 10 | On-this-day card, global haptics, PWA install banner, bottom-nav (1.7.0) |
+| 11 | Help & About screen + ⓘ in every header (1.8.0–1.8.1); signature watermark + neon screen frame (1.8.2–1.10.0) |
+| 12 | Trash recycle bin with 30-day auto-purge (1.9.0) |
+| 13 | Data integrity hardening — Phase D: validate-before-clear import + sha256, atomic save, DB-first media write, orphan reaper, persistent-storage request, crash-safe DEK migration, trash safety guards (1.12.0) |
+| 14 | Auto rolling local backups + Phase P perf — decrypted-entry cache, parallel thumbnails, persistent search index, parallel media prepare, OPFS dir handle cache, computed calendar (1.13.0) |
 
 ## Patch Log
 
@@ -338,31 +408,34 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.10.0 | 2026-05-08 | style: neon screen frame on every route. body::after fixed-position overlay with 1.5px pink border, rounded corners, inset glow + outer glow, 4s pulse. z-index 15 so bottom-nav (20) and signature (999) sit above |
 | 1.11.0 | 2026-05-08 | feat: global haptic feedback on every tap. App-level click listener fires HapticService.tap on button/[role=button]/a/label clicks. data-no-haptic attr opts out. Settings toggle to disable (persisted in localStorage) |
 | 1.12.0 | 2026-05-08 | feat: data integrity hardening (Phase D). Backup import validates structure + sha256 BEFORE clearing DB; clears + bulkPuts wrapped in Dexie transaction. Save in entry-edit is now atomic via EntryService.saveAtomic with single transaction. Media write order reversed: DB record first, then OPFS (rolls back DB on OPFS failure). MediaService.reapOrphans + OpfsService.listFiles cleans up stranded blobs daily on timeline boot. StorageService.ensurePersisted called on unlock + setup; banner on timeline if browser denies persistent storage. DEK migration wraps re-encryption in transaction with migrationInProgress flag for crash detection on next unlock. Trash purgeExpired adds clock-skew guard, 1-hour debounce, 24h TTL margin, last-100 purge audit log |
-| 1.13.1 | 2026-05-08 | fix: TS2769 in SearchService.search/searchSync — `[...result]` narrowed to `never[]`. Add explicit `Set<string>` cast |
 | 1.13.0 | 2026-05-08 | feat: auto rolling backups (B1) + perf at scale (Phase P). New BackupService stores last 3 encrypted snapshots in IDB (Dexie v4 backupSnapshots table); auto-snapshot debounced ≤1/day after every save; /backups route + Settings link with Snapshot Now / Restore / Delete. P1: EntryService caches decrypted entries by updatedAt (cleared on lock via signal effect). P2: timeline thumbnails fan out to a 6-way concurrency pool with progressive UI updates. P3: persistent search index in Dexie v5 searchTokens table (`*tokens` multi-entry index); SearchService.ensureIndex syncs incrementally on each timeline load; search() now async via Dexie startsWith. P4: media prepare in entry-edit save runs concurrency=3 (30 photos ≈ 30s instead of 4 min). P5: OpfsService caches resolved directory handles (cleared after import). P6: calendarCells converted to computed signal so it doesn't recalc on every CD cycle |
+| 1.13.1 | 2026-05-08 | fix: TS2769 in SearchService.search/searchSync — `[...result]` narrowed to `never[]`. Add explicit `Set<string>` cast |
+| 1.13.2 | 2026-05-08 | docs: refresh NOTES.md + README.md to reflect every feature shipped through 1.13.x. No code changes |
 
 ---
 
 ## Future Improvements
 
 ### High value
-- **Passcode change** — requires re-encrypting all entries + media with new key. Pattern: decrypt all → derive new key → re-encrypt all → replace vaultMeta. Heavy but doable.
-- **Entry sort options** — alphabetical, mood, date ascending. Currently always date descending (Dexie `orderBy('date').reverse()`).
-- **Tag filter on timeline** — tap a tag chip to filter; currently tags only shown, not filterable.
-- **Search in body HTML** — currently searches `bodyText` only; same for title. Could also surface matches with highlights.
+- **Passcode change** — keep DEK, re-derive KEK_user from new passcode, re-wrap dekWrappedUser. Avoids re-encrypting entries (just rewrap the DEK). Master code "1810" path is unaffected.
+- **Optimistic concurrency on entry update (D7 deferred)** — read updatedAt before write; throw on mismatch so a second tab's edit isn't silently overwritten.
+- **Search highlights** — surface matched snippet from `bodyText` in search results.
+- **Search in body HTML** — currently searches plaintext only. Could index TipTap HTML stripped to attribute-aware tokens.
 
 ### Medium value
-- **Pinch-to-zoom on lightbox** — iOS native gesture; needs HammerJS or Pointer Events tracking.
-- **Drag to reorder media** — currently media shown in add order only.
-- **Entry templates** — save a blank entry structure to reuse (gratitude list, daily log, etc.).
-- **Dark/light theme toggle** — currently hardcoded black. CSS custom property swap is straightforward.
-- **Word count + reading time** — show on entry-detail; trivial to add.
+- **Pinch-to-zoom on lightbox** — Pointer Events tracking, no third-party dep.
+- **Drag-to-reorder media** within an entry.
+- **Entry templates** — save a blank entry structure (gratitude list, daily log) and clone.
+- **Storage dashboard in Settings** — show used MB / quota %, list largest media items.
+- **Streak counter** — days with at least one entry.
+- **Bundle split** — TipTap (~200KB) imported on `entry-edit` lazy chunk only; verify it's not in the lock-screen chunk.
 
 ### Low value / nice-to-have
 - **iCloud sync** — would require CloudKit or a server. Breaks the no-backend constraint.
-- **Biometric unlock** — WebAuthn PRF extension can derive a key from Touch ID / Face ID. Complex but possible on iOS 16+.
+- **Biometric unlock** — WebAuthn PRF on iOS 16+. Complex.
 - **Markdown import** — parse `.md` files into TipTap HTML on import.
-- **Streak counter** — days with at least one entry.
+- **HMAC-encrypted search tokens** — currently tokens are plaintext (same trade-off as Tag.name). HMAC under the DEK gets encryption-at-rest without giving up prefix search.
+- **"What's New" — surface latest Patch Log entry in-app on first open after update.
 
 ---
 

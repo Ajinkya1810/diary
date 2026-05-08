@@ -1,6 +1,6 @@
 # Diary
 
-Personal offline diary PWA for iPhone. Encrypted at rest. No backend. No accounts.
+Personal offline diary PWA for iPhone. Encrypted at rest. No backend. No accounts. No analytics.
 
 **Live:** https://ajinkya1810.github.io/diary/
 
@@ -10,40 +10,65 @@ Personal offline diary PWA for iPhone. Encrypted at rest. No backend. No account
 
 ### Writing
 - Rich text editor (TipTap) — bold, italic, headings, bullets, ordered lists
-- Title + date per entry (date defaults to today, can be changed)
-- Mood rating 1–5 (😞 😕 😐 🙂 😄)
+- Title, date, mood (1–5 emoji), tags per entry
+- Encrypted draft auto-save every 3 s while editing — close the tab safely
+- Word count + reading time on entry detail
 
 ### Media
-- Attach photos and videos per entry
+- **Photos** (compressed to 2048 px JPEG, 0.85 quality)
+- **Videos** (≤ 50 MB, ≤ 30 s)
+- **Voice notes** — record in-app via 🎤 button (≤ 5 min, audio/webm;opus)
 - Camera capture button (uses device camera directly)
-- Images compressed to max 2048px JPEG (0.85 quality) before storage
-- Videos validated: max 50 MB, max 30 seconds
-- Thumbnail strip shown in timeline and edit view
 - Lightbox tap-to-zoom on entry detail
+- Thumbnails decrypted in parallel (6-way) so the timeline stays responsive at scale
 
-### Tags
-- Create/rename/delete tags in Settings (⚙ top-right of timeline)
-- Tag picker on entry edit — tap chip to toggle, "+ New tag" to create on-the-fly
-- Tag chips shown on timeline rows and entry detail
-- Tags are not encrypted (names visible in DB)
+### Views
+- **Timeline** — month-grouped list with mood emoji + thumbnails + tag chips
+- **Calendar** — month grid with mood-tinted day cells; tap a day to open or create
+- Toggle between views from the bottom-nav (▦ / ☰); choice persists per device
+- **On this day** — auto card on timeline showing entries from the same date in past years
 
-### Search
-- Search bar at top of timeline — searches title + body text
-- 200ms debounce, prefix-match (typing "hap" matches "happy")
-- Clears with ✕ button, shows result count
+### Search & filter
+- Search bar with 200 ms debounce, prefix match ("hap" → "happy")
+- Persistent index in IndexedDB — instant searches even with 1000s of entries
+- Tap any tag chip on a timeline row to filter the timeline by that tag
 
-### Security
-- AES-GCM 256-bit encryption on all entry text and media
-- Key derived from passcode via PBKDF2-SHA256 (200,000 iterations)
-- Key lives in memory only — never written to disk
-- Auto-locks after 2 minutes in background (visibilitychange)
-- Forgotten passcode = **permanent data loss** — no reset exists
-- Verifier pattern: encrypts constant string to confirm passcode correctness on unlock
+### Trash & recovery
+- Soft-delete to Trash; auto-purge after 30 days
+- `/trash` route — restore or delete forever; "Empty Trash" bulk action
+- Three rolling encrypted snapshots automatically saved in IndexedDB after every save (debounced ≤1/day)
+- `/backups` route — restore from any snapshot or take one on demand
 
-### Backup & Export
-- **Encrypted backup** — exports entire DB + media as `.diarybackup` file (JSON, already-encrypted data, no re-encryption). On iPhone: opens share sheet (save to Files, AirDrop, etc.)
-- **Restore** — imports `.diarybackup`, replaces all data, forces re-lock. Works cross-device if passcode is the same.
-- **PDF export** — one page per entry with date, title, body text. No images. On iPhone: opens share sheet.
+### Theme
+- Dark and light mode; toggle (☀ / 🌙) sits next to the help (ⓘ) button on every header
+
+### PWA
+- Install banner on lock screen; one-tap "Add to Home Screen"
+- Offline-first via Angular service worker
+- Hard-refresh button (↻) on lock screen for emergency cache busts
+- Auto-prompt banner when a new version is ready
+
+### Help
+- Built-in `/help` route with feature guide, how-to, and privacy info — accessible from the ⓘ button anywhere
+
+---
+
+## Security
+
+- **AES-GCM 256-bit** encryption on every entry text field, every photo/video/audio blob, and every thumbnail
+- **PBKDF2-SHA256** with 200,000 iterations to derive keys from passcodes
+- **DEK pattern** — a random Data Encryption Key encrypts the data; the DEK itself is wrapped twice in the vault:
+  - by `KEK_user` (PBKDF2 of your passcode)
+  - by `KEK_master` (PBKDF2 of the personal master code "1810")
+
+  Either passcode unlocks the same DEK, so you can always get in with your own code or your signature
+- **Auto-lock** after 2 minutes in background; key wiped from memory
+- **Validate-before-clear** on backup import — wrong/corrupt file throws cleanly without wiping current data; `version: 2` backups carry a sha256 checksum
+- **Atomic save** — entry + media writes are wrapped in a single Dexie transaction
+- **Persistent storage** — `navigator.storage.persist()` requested on unlock; banner warns if denied so backups are taken
+- **Crash-safe DEK migration** with `migrationInProgress` flag; interrupted migrations surface a recovery prompt instead of silently corrupting
+
+> **Forgotten passcode = data permanently unrecoverable.** No reset exists. Back up regularly.
 
 ---
 
@@ -81,7 +106,9 @@ Build output: `dist/diary/browser/`
 ## Important
 
 - **Forgotten passcode = all data permanently unrecoverable.** No reset exists.
-- Export backup before changing devices or reinstalling.
-- On restore: both devices must use the same passcode (backup embeds the vault salt).
+- The personal master code "1810" is hardcoded in `VaultService` as a signature backdoor. Anyone with repo access can derive it — accepted trade-off for personal use.
+- Export an encrypted backup file before changing devices or reinstalling.
+- Three rolling encrypted snapshots are kept locally as an extra safety net but are still vulnerable to device loss — keep a copy off-device too.
+- On restore: both devices must use the same passcode (backup embeds the wrapped DEKs).
 - Auto-locks after 2 minutes when backgrounded.
-- OPFS (media storage) requires iOS 17+. Older iPhones cannot store photos/videos.
+- OPFS (media storage) requires iOS 17+. Older iPhones cannot store photos/videos/audio.
