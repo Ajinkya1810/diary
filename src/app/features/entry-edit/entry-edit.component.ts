@@ -10,7 +10,7 @@ import { EditorComponent } from '../../shared/editor/editor.component';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
 
-interface PendingMedia { file: File; previewUrl: string; type: 'image' | 'video'; }
+interface PendingMedia { file: File; previewUrl: string; type: 'image' | 'video' | 'audio'; }
 
 @Component({
   selector: 'app-entry-edit',
@@ -45,6 +45,14 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   removedMediaIds: string[] = [];
   pendingMedia: PendingMedia[] = [];
   private ownedUrls: string[] = [];
+
+  recording = signal(false);
+  recordSeconds = signal(0);
+  private mediaRecorder: MediaRecorder | null = null;
+  private recordStream: MediaStream | null = null;
+  private recordChunks: BlobPart[] = [];
+  private recordTimer: any = null;
+  private readonly MAX_RECORD_SECONDS = 300;
 
   constructor(
     private entrySvc: EntryService,
@@ -91,6 +99,62 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.pendingMedia.forEach(p => URL.revokeObjectURL(p.previewUrl));
     this.ownedUrls.forEach(u => URL.revokeObjectURL(u));
+    this.cleanupRecording();
+  }
+
+  async startRecording() {
+    if (this.recording()) return;
+    this.mediaError.set('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.recordStream = stream;
+      const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+      const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
+      this.mediaRecorder = recorder;
+      this.recordChunks = [];
+      this.recordSeconds.set(0);
+
+      recorder.ondataavailable = e => { if (e.data.size > 0) this.recordChunks.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(this.recordChunks, { type: recorder.mimeType || 'audio/webm' });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: blob.type });
+        const previewUrl = URL.createObjectURL(blob);
+        this.pendingMedia = [...this.pendingMedia, { file, previewUrl, type: 'audio' }];
+        this.cleanupRecording();
+      };
+
+      recorder.start();
+      this.recording.set(true);
+      this.recordTimer = setInterval(() => {
+        const next = this.recordSeconds() + 1;
+        this.recordSeconds.set(next);
+        if (next >= this.MAX_RECORD_SECONDS) this.stopRecording();
+      }, 1000);
+    } catch {
+      this.mediaError.set('Mic access denied or unavailable.');
+      this.cleanupRecording();
+    }
+  }
+
+  stopRecording() {
+    if (!this.recording() || !this.mediaRecorder) return;
+    this.recording.set(false);
+    if (this.recordTimer) { clearInterval(this.recordTimer); this.recordTimer = null; }
+    try { this.mediaRecorder.stop(); } catch { /* already stopped */ }
+  }
+
+  recordTimeStr(): string {
+    const s = this.recordSeconds();
+    const m = Math.floor(s / 60);
+    return `${m}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  private cleanupRecording() {
+    if (this.recordTimer) { clearInterval(this.recordTimer); this.recordTimer = null; }
+    this.recordStream?.getTracks().forEach(t => t.stop());
+    this.recordStream = null;
+    this.mediaRecorder = null;
+    this.recording.set(false);
   }
 
   todayStr(): string { return new Date().toISOString().slice(0, 10); }
@@ -126,10 +190,13 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   private async addPending(file: File) {
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
-    if (!isImage && !isVideo) { this.mediaError.set('Only images and videos supported.'); return; }
+    const isAudio = file.type.startsWith('audio/');
+    if (!isImage && !isVideo && !isAudio) { this.mediaError.set('Only images, videos, audio supported.'); return; }
     if (isVideo && file.size > 50 * 1024 * 1024) { this.mediaError.set('Video must be under 50 MB.'); return; }
+    if (isAudio && file.size > 20 * 1024 * 1024) { this.mediaError.set('Audio must be under 20 MB.'); return; }
     const previewUrl = URL.createObjectURL(file);
-    this.pendingMedia = [...this.pendingMedia, { file, previewUrl, type: isImage ? 'image' : 'video' }];
+    const type: PendingMedia['type'] = isImage ? 'image' : isVideo ? 'video' : 'audio';
+    this.pendingMedia = [...this.pendingMedia, { file, previewUrl, type }];
   }
 
   removePending(i: number) {

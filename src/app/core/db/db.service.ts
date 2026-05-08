@@ -31,7 +31,7 @@ export interface Tag {
 export interface MediaRecord {
   id: string;
   entryId: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'audio';
   mimeType: string;
   sizeBytes: number;
   opfsPath: string;

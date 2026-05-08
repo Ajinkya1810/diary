@@ -57,13 +57,20 @@
     <div class="media-section">
       <div class="media-actions">
         <label class="media-btn">
-          <input type="file" accept="image/*,video/*" multiple hidden (change)="onFilePick($event)" />
+          <input type="file" accept="image/*,video/*,audio/*" multiple hidden (change)="onFilePick($event)" />
           ＋ Photo / Video
         </label>
         <label class="media-btn camera">
           <input type="file" accept="image/*,video/*" capture="environment" hidden (change)="onFilePick($event)" />
           📷 Camera
         </label>
+        @if (!recording()) {
+          <button type="button" class="media-btn record" (click)="startRecording()">🎤 Record</button>
+        } @else {
+          <button type="button" class="media-btn record-active" (click)="stopRecording()">
+            <span class="rec-dot"></span> Stop · {{ recordTimeStr() }}
+          </button>
+        }
       </div>
 
       @if (mediaError()) {
@@ -74,19 +81,25 @@
         @for (m of existingMedia; track m.id) {
           <div class="thumb-item">
             <img [src]="thumbFor(m.id)" alt="" />
-            @if (m.type === 'video') {
-              <span class="video-badge">▶</span>
-            }
+            @if (m.type === 'video') { <span class="video-badge">▶</span> }
+            @if (m.type === 'audio') { <span class="audio-badge">🎤</span> }
             <button class="thumb-remove" (click)="removeExisting(m.id)">×</button>
           </div>
         }
         @for (p of pendingMedia; track p.previewUrl; let i = $index) {
           <div class="thumb-item pending">
-            @if (p.type === 'image') {
-              <img [src]="p.previewUrl" alt="" />
-            } @else {
-              <video [src]="p.previewUrl" muted playsinline></video>
-              <span class="video-badge">▶</span>
+            @switch (p.type) {
+              @case ('image') { <img [src]="p.previewUrl" alt="" /> }
+              @case ('video') {
+                <video [src]="p.previewUrl" muted playsinline></video>
+                <span class="video-badge">▶</span>
+              }
+              @case ('audio') {
+                <div class="audio-tile">
+                  <span class="audio-icon">🎤</span>
+                  <span class="audio-label">Audio</span>
+                </div>
+              }
             }
             <button class="thumb-remove" (click)="removePending(i)">×</button>
           </div>

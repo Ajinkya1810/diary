@@ -28,10 +28,19 @@
       @if (media().length > 0) {
         <div class="media-grid">
           @for (m of media(); track m.record.id) {
-            @if (m.record.type === 'image') {
-              <img class="media-image" [src]="m.url" alt="" (click)="openLightbox(m.url)" />
-            } @else {
-              <video class="media-video" [src]="m.url" [poster]="m.thumbUrl || ''" controls playsinline preload="metadata"></video>
+            @switch (m.record.type) {
+              @case ('image') {
+                <img class="media-image" [src]="m.url" alt="" (click)="openLightbox(m.url)" />
+              }
+              @case ('video') {
+                <video class="media-video" [src]="m.url" [poster]="m.thumbUrl || ''" controls playsinline preload="metadata"></video>
+              }
+              @case ('audio') {
+                <div class="media-audio">
+                  <span class="audio-glyph">🎤</span>
+                  <audio [src]="m.url" controls preload="metadata"></audio>
+                </div>
+              }
             }
           }
         </div>

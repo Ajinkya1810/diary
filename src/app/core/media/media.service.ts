@@ -6,6 +6,8 @@ import { CryptoService } from '../crypto/crypto.service';
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 const MAX_VIDEO_SECONDS = 30;
+const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
+const MAX_AUDIO_SECONDS = 300;
 const MAX_IMAGE_PX = 2048;
 const THUMB_PX = 400;
 
@@ -22,12 +24,18 @@ export class MediaService {
     const key = this.vault.requireKey();
     const isImage = file.type.startsWith('image/');
     const isVideo = file.type.startsWith('video/');
+    const isAudio = file.type.startsWith('audio/');
 
-    if (!isImage && !isVideo) throw new Error('Only images and videos are supported.');
+    if (!isImage && !isVideo && !isAudio) throw new Error('Only images, videos, audio supported.');
     if (isVideo) {
       if (file.size > MAX_VIDEO_BYTES) throw new Error('Video must be under 50 MB.');
       const dur = await this.getVideoDuration(file);
       if (dur > MAX_VIDEO_SECONDS) throw new Error(`Video must be under ${MAX_VIDEO_SECONDS}s (yours is ${Math.round(dur)}s).`);
+    }
+    if (isAudio) {
+      if (file.size > MAX_AUDIO_BYTES) throw new Error('Audio must be under 20 MB.');
+      const dur = await this.getAudioDuration(file).catch(() => 0);
+      if (dur > MAX_AUDIO_SECONDS) throw new Error(`Audio must be under ${MAX_AUDIO_SECONDS}s.`);
     }
 
     const id = crypto.randomUUID();
@@ -36,7 +44,10 @@ export class MediaService {
     const opfsPath = `media/${year}/${month}/${id}.${ext}`;
 
     const rawBlob = isImage ? await this.compressImage(file, MAX_IMAGE_PX) : file;
-    const thumbRaw = isImage ? await this.compressImage(file, THUMB_PX) : await this.videoThumbnail(file);
+    const thumbRaw = isImage
+      ? await this.compressImage(file, THUMB_PX)
+      : isVideo ? await this.videoThumbnail(file)
+      : await this.audioThumbnail();
 
     // Encrypt blob → IV-prefixed binary in OPFS
     const encryptedBlob = await this.crypto.encryptToBinary(key, rawBlob);
@@ -47,7 +58,7 @@ export class MediaService {
 
     const record: MediaRecord = {
       id, entryId,
-      type: isImage ? 'image' : 'video',
+      type: isImage ? 'image' : isVideo ? 'video' : 'audio',
       mimeType: isImage ? 'image/jpeg' : file.type,
       sizeBytes: rawBlob.size,
       opfsPath, thumbnailData,
@@ -100,7 +111,43 @@ export class MediaService {
     if (file.type === 'video/mp4') return 'mp4';
     if (file.type === 'video/quicktime') return 'mov';
     if (file.type === 'video/webm') return 'webm';
+    if (file.type.startsWith('audio/webm')) return 'webm';
+    if (file.type === 'audio/mp4' || file.type === 'audio/m4a') return 'm4a';
+    if (file.type === 'audio/mpeg') return 'mp3';
+    if (file.type.startsWith('audio/')) return 'audio';
     return 'jpg';
+  }
+
+  private getAudioDuration(file: File): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('audio');
+      a.preload = 'metadata';
+      a.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(a.duration); };
+      a.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Cannot read audio')); };
+      a.src = url;
+    });
+  }
+
+  private audioThumbnail(): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const size = 200;
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d')!;
+      // Dark gradient bg
+      const grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#1a0e1f');
+      grad.addColorStop(1, '#0a0a0a');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      // Mic emoji centered
+      ctx.font = '110px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🎤', size / 2, size / 2 + 6);
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/jpeg', 0.85);
+    });
   }
 
   private compressImage(file: File, maxPx: number): Promise<Blob> {
