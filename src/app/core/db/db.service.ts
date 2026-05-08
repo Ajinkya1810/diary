@@ -14,6 +14,7 @@ export interface Entry {
   mediaIds: string[];
   createdAt: number;
   updatedAt: number;
+  deletedAt?: number;     // ms epoch when soft-deleted; undefined = active
 }
 
 // On-disk shape — encrypted text fields

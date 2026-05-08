@@ -1,0 +1,46 @@
+<div class="trash-page">
+  <header class="top-bar">
+    <button class="btn-ghost" (click)="back()">← Back</button>
+    <span class="page-title">Trash</span>
+    <app-theme-toggle />
+  </header>
+
+  <div class="content">
+    @if (loading()) {
+      <p class="empty">Loading…</p>
+    } @else if (entries().length === 0) {
+      <div class="empty-state">
+        <div class="icon">🗑</div>
+        <p>Trash is empty</p>
+        <p class="sub">Deleted entries appear here for 30 days.</p>
+      </div>
+    } @else {
+      <div class="info-bar">
+        <span>{{ entries().length }} entr{{ entries().length === 1 ? 'y' : 'ies' }} · auto-deletes after 30d</span>
+        <button class="btn-empty" (click)="emptyTrash()">Empty</button>
+      </div>
+
+      <ul class="trash-list">
+        @for (e of entries(); track e.id) {
+          <li class="trash-item">
+            <div class="info">
+              <div class="title-row">
+                <span class="title">{{ e.title || 'Untitled' }}</span>
+                @if (moodEmoji(e.mood)) { <span class="mood">{{ moodEmoji(e.mood) }}</span> }
+              </div>
+              <div class="meta">
+                <span>{{ e.date }}</span>
+                <span class="dot">·</span>
+                <span class="days-left">{{ daysLeft(e) }}d left</span>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn-restore" (click)="restore(e.id)">Restore</button>
+              <button class="btn-delete" (click)="deleteForever(e.id)" aria-label="Delete forever">✕</button>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+</div>

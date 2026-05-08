@@ -292,9 +292,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
 
   async deleteEntry() {
     if (!this.entryId) return;
-    if (!confirm('Delete this entry? This cannot be undone.')) return;
-    const media = await this.mediaSvc.getEntryMedia(this.entryId);
-    for (const m of media) await this.mediaSvc.deleteMedia(m, this.entryId);
+    if (!confirm('Move this entry to Trash? It auto-deletes after 30 days.')) return;
     await this.entrySvc.delete(this.entryId);
     this.draftSvc.clear(this.entryId);
     this.router.navigate(['/timeline']);

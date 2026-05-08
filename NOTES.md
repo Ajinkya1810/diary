@@ -334,6 +334,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.8.4 | 2026-05-08 | style: prefix "made by" added before Ajinkya. Smaller sans-serif, lowercase, slightly muted; signature stays italic script with neon glow |
 | 1.8.5 | 2026-05-08 | fix: signature offset raised to 82px from bottom so it no longer overlaps the bottom-nav Settings button on timeline |
 | 1.8.6 | 2026-05-08 | fix: lock-screen footer (info/theme/version/refresh) no longer fixed at bottom — now in flex flow with justify-content: space-evenly so it centers in lower half |
+| 1.9.0 | 2026-05-08 | feat: Trash / recycle bin. Soft-delete via Entry.deletedAt timestamp. /trash route lists deleted entries with restore + delete-forever buttons. Auto-purge after 30 days runs on timeline init. Empty Trash bulk action |
 
 ---
 

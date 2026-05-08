@@ -276,6 +276,29 @@
   }
 }
 
+.trash-link {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-ui);
+  transition: border-color 0.15s;
+
+  &:hover { border-color: var(--accent); }
+
+  .trash-icon { font-size: 1.25rem; flex-shrink: 0; }
+  .trash-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+  .trash-title { color: var(--text); font-size: 0.9375rem; font-weight: 500; }
+  .trash-desc { color: var(--text-3); font-size: 0.75rem; }
+  .trash-arrow { color: var(--text-3); font-size: 1.25rem; flex-shrink: 0; }
+}
+
 .backup-reminder {
   background: rgba(255,170,0,0.1);
   border: 1px solid rgba(255,170,0,0.3);

@@ -43,4 +43,10 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/help/help.component').then(m => m.HelpComponent),
   },
+  {
+    path: 'trash',
+    canActivate: [unlockedGuard],
+    loadComponent: () =>
+      import('./features/trash/trash.component').then(m => m.TrashComponent),
+  },
 ];

@@ -50,6 +50,18 @@
 
   </div>
 
+  <!-- Trash -->
+  <div class="section">
+    <button class="trash-link" (click)="openTrash()">
+      <span class="trash-icon">🗑</span>
+      <span class="trash-text">
+        <span class="trash-title">Trash</span>
+        <span class="trash-desc">Deleted entries — auto-removed after 30 days</span>
+      </span>
+      <span class="trash-arrow">›</span>
+    </button>
+  </div>
+
   <!-- Version -->
   <div class="section version-section">
     <span class="build-info">{{ buildLabel }}</span>

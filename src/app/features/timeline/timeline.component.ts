@@ -48,6 +48,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   ) {}
 
   async ngOnInit() {
+    await this.entrySvc.purgeExpired().catch(() => 0);
     const [all, tags] = await Promise.all([this.entrySvc.listAll(), this.tagSvc.listAll()]);
     this.allEntries = all;
     this.tagMap.set(new Map(tags.map(t => [t.id, t])));

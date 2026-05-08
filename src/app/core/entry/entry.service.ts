@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
-import { DbService, Entry, StoredEntry } from '../db/db.service';
+import { DbService, Entry, StoredEntry, MediaRecord } from '../db/db.service';
 import { VaultService } from '../vault/vault.service';
 import { CryptoService } from '../crypto/crypto.service';
+import { OpfsService } from '../media/opfs.service';
+
+const TRASH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 @Injectable({ providedIn: 'root' })
 export class EntryService {
@@ -9,12 +12,21 @@ export class EntryService {
     private db: DbService,
     private vault: VaultService,
     private crypto: CryptoService,
+    private opfs: OpfsService,
   ) {}
 
   async listAll(): Promise<Entry[]> {
     const key = this.vault.requireKey();
     const stored = await this.db.entries.orderBy('date').reverse().toArray();
-    return Promise.all(stored.map(s => this.toPlain(s, key)));
+    const active = stored.filter(s => !s.deletedAt);
+    return Promise.all(active.map(s => this.toPlain(s, key)));
+  }
+
+  async listDeleted(): Promise<Entry[]> {
+    const key = this.vault.requireKey();
+    const stored = await this.db.entries.toArray();
+    const trashed = stored.filter(s => !!s.deletedAt).sort((a, b) => (b.deletedAt ?? 0) - (a.deletedAt ?? 0));
+    return Promise.all(trashed.map(s => this.toPlain(s, key)));
   }
 
   async get(id: string): Promise<Entry | null> {
@@ -46,7 +58,34 @@ export class EntryService {
   }
 
   async delete(id: string): Promise<void> {
+    await this.db.entries.update(id, { deletedAt: Date.now() } as any);
+  }
+
+  async restore(id: string): Promise<void> {
+    await this.db.entries.update(id, { deletedAt: undefined } as any);
+  }
+
+  async hardDelete(id: string): Promise<void> {
+    const media = await this.db.media.where('entryId').equals(id).toArray();
+    for (const m of media) {
+      await this.opfs.deleteBlob(m.opfsPath).catch(() => {});
+      await this.db.media.delete(m.id);
+    }
     await this.db.entries.delete(id);
+  }
+
+  async purgeExpired(): Promise<number> {
+    const now = Date.now();
+    const stored = await this.db.entries.toArray();
+    const expired = stored.filter(s => s.deletedAt && (now - s.deletedAt) > TRASH_TTL_MS);
+    for (const e of expired) await this.hardDelete(e.id);
+    return expired.length;
+  }
+
+  daysUntilPurge(deletedAt: number): number {
+    const elapsed = Date.now() - deletedAt;
+    const remaining = TRASH_TTL_MS - elapsed;
+    return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
   }
 
   async modifyMediaIds(id: string, fn: (ids: string[]) => string[]): Promise<void> {
@@ -72,4 +111,6 @@ export class EntryService {
     ]);
     return { ...stored, title, bodyHtml, bodyText };
   }
+
+  static readonly TRASH_TTL_MS = TRASH_TTL_MS;
 }
