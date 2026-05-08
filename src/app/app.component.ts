@@ -18,6 +18,7 @@ import { ThemeService } from './core/theme/theme.service';
       </div>
     }
     <router-outlet />
+    <div class="signature" aria-hidden="true">Ajinkya</div>
   `,
   styleUrl: './app.component.scss',
 })

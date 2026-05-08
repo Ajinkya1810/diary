@@ -3,6 +3,22 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.signature {
+  position: fixed;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0));
+  right: 12px;
+  font-family: 'Brush Script MT', 'Lucida Handwriting', 'Iowan Old Style', cursive;
+  font-style: italic;
+  font-size: 0.875rem;
+  color: var(--text-3);
+  opacity: 0.4;
+  pointer-events: none;
+  letter-spacing: 0.04em;
+  z-index: 5;
+  user-select: none;
+  text-shadow: 0 0 6px var(--bg);
+}
+
 .update-banner {
   position: fixed;
   top: env(safe-area-inset-top, 0);

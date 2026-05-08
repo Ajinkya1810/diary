@@ -329,6 +329,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.7.1 | 2026-05-08 | remove: 4-theme picker (Neon/OLED/Midnight/Sunset). Keep dark/light mode only. ThemeService simplified to mode-only. Settings theme section + theme-card SCSS dropped |
 | 1.8.0 | 2026-05-08 | feat: Help & About screen at /help. Sections: hero, features list, 6-step how-to, privacy info, tips, version. Linked from Settings as a card row |
 | 1.8.1 | 2026-05-08 | move: Help button into ThemeToggleComponent — ⓘ now renders next to ☀/🌙 in every header. Settings help link removed |
+| 1.8.2 | 2026-05-08 | feat: "Ajinkya" signature watermark fixed bottom-right on every screen (italic script font, 40% opacity, pointer-events none) |
 
 ---
 
