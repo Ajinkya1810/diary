@@ -25,7 +25,6 @@ export class SettingsComponent implements OnInit {
   readonly buildLabel = BUILD_LABEL;
   backupState = signal<ActionState>('idle');
   importState = signal<ActionState>('idle');
-  pdfState = signal<ActionState>('idle');
   errorMsg = signal('');
 
   constructor(
@@ -89,19 +88,6 @@ export class SettingsComponent implements OnInit {
     } catch (e: any) {
       this.errorMsg.set(e.message ?? 'Import failed.');
       this.importState.set('error');
-    }
-  }
-
-  async exportPdf() {
-    this.pdfState.set('busy');
-    this.errorMsg.set('');
-    try {
-      await this.exportSvc.exportPdf();
-      this.pdfState.set('done');
-      setTimeout(() => this.pdfState.set('idle'), 3000);
-    } catch (e: any) {
-      this.errorMsg.set(e.message ?? 'PDF export failed.');
-      this.pdfState.set('error');
     }
   }
 

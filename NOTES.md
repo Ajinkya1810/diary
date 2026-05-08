@@ -306,6 +306,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.0.1 | 2026-05-08 | entry-detail: video poster from decrypted thumbnail — no more blank frame before play |
 | 1.0.2 | 2026-05-08 | fix: GitHub Pages SPA deep-link 404 — added 404.html redirect + index.html decode script |
 | 1.0.3 | 2026-05-08 | feat: hard refresh button on lock screen — SwUpdate.checkForUpdate + activateUpdate + reload |
+| 1.0.4 | 2026-05-08 | remove: PDF export feature + jspdf dep (~200KB bundle save). Settings PDF row removed |
 
 ---
 

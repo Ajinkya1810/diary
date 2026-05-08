@@ -45,21 +45,6 @@
       </label>
     </div>
 
-    <div class="action-row">
-      <div class="action-info">
-        <span class="action-title">Export PDF</span>
-        <span class="action-desc">Saves all entries as a readable PDF. No images included.</span>
-      </div>
-      <button class="btn-action"
-        [disabled]="pdfState() === 'busy'"
-        (click)="exportPdf()">
-        @switch (pdfState()) {
-          @case ('busy') { … }
-          @case ('done') { ✓ Saved }
-          @default { PDF }
-        }
-      </button>
-    </div>
   </div>
 
   <!-- Version -->

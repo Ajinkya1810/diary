@@ -1,6 +1,6 @@
 {
   "name": "diary",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -23,7 +23,6 @@
     "@tiptap/core": "^3.22.5",
     "@tiptap/starter-kit": "^3.22.5",
     "dexie": "^4.4.2",
-    "jspdf": "^4.2.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"
