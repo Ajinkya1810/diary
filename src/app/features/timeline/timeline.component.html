@@ -1,9 +1,15 @@
 <div class="timeline-page">
   <header class="top-bar">
     <h1>Diary</h1>
-    <button class="btn-settings" (click)="settings()" aria-label="Settings">⚙</button>
+    <div class="top-actions">
+      <button class="btn-icon" (click)="toggleView()" [attr.aria-label]="viewMode() === 'timeline' ? 'Calendar view' : 'Timeline view'">
+        @if (viewMode() === 'timeline') { ▦ } @else { ☰ }
+      </button>
+      <button class="btn-icon" (click)="settings()" aria-label="Settings">⚙</button>
+    </div>
   </header>
 
+  @if (viewMode() === 'timeline') {
   <div class="search-bar">
     <div class="search-wrap">
       <span class="search-icon">⌕</span>
@@ -14,9 +20,36 @@
       }
     </div>
   </div>
+  }
 
   @if (loading()) {
     <div class="empty-state"><p>Loading…</p></div>
+
+  } @else if (viewMode() === 'calendar') {
+    <div class="cal-page">
+      <div class="cal-header">
+        <button class="btn-icon" (click)="prevMonth()" aria-label="Previous month">‹</button>
+        <button class="cal-title" (click)="todayMonth()" title="Jump to current month">{{ calendarLabel() }}</button>
+        <button class="btn-icon" (click)="nextMonth()" aria-label="Next month">›</button>
+      </div>
+      <div class="cal-weekdays">
+        <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+      </div>
+      <div class="cal-grid">
+        @for (cell of calendarCells(); track cell.date) {
+          <button class="cal-cell"
+            [class.has-entry]="!!cell.entry"
+            [class.is-today]="cell.isToday"
+            [class.out-of-month]="!cell.inMonth"
+            [attr.data-mood]="cell.entry?.mood ?? null"
+            (click)="onDayTap(cell)">
+            <span class="cal-day">{{ cell.day }}</span>
+            @if (cell.entry?.mood) { <span class="cal-mood">{{ moodEmoji(cell.entry!.mood) }}</span> }
+            @else if (cell.entry) { <span class="cal-dot">·</span> }
+          </button>
+        }
+      </div>
+    </div>
 
   } @else if (searchResults() !== null) {
     @if (searchResults()!.length === 0) {

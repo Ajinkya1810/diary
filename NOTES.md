@@ -320,6 +320,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.0.3 | 2026-05-08 | feat: hard refresh button on lock screen — SwUpdate.checkForUpdate + activateUpdate + reload |
 | 1.0.4 | 2026-05-08 | remove: PDF export feature + jspdf dep (~200KB bundle save). Settings PDF row removed |
 | 1.1.0 | 2026-05-08 | feat: master code "1810" unlock + DEK pattern. Random DEK encrypts data, wrapped by KEK_user (passcode) and KEK_master ("1810"). Either unlocks. Transparent v1→v2 migration on first unlock |
+| 1.2.0 | 2026-05-08 | feat: calendar view toggle on timeline. Month grid with mood emoji + color tint per day. Tap day → entry detail or new entry pre-filled with date. Persisted view choice in localStorage |
 
 ---
 

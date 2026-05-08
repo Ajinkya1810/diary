@@ -59,6 +59,9 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     const [tags] = await Promise.all([this.tagSvc.listAll()]);
     this.allTags = tags;
 
+    const dateParam = this.route.snapshot.queryParamMap.get('date');
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) this.date = dateParam;
+
     if (id && id !== 'new') {
       this.isEdit = true;
       this.entryId = id;

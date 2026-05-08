@@ -9,7 +9,9 @@ import { SearchService } from '../../core/search/search.service';
 import { TagService } from '../../core/tag/tag.service';
 
 interface MonthGroup { label: string; entries: Entry[]; }
+interface CalendarCell { date: string; day: number; inMonth: boolean; isToday: boolean; entry?: Entry; }
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
+const VIEW_MODE_KEY = 'diary.viewMode';
 
 @Component({
   selector: 'app-timeline',
@@ -25,6 +27,11 @@ export class TimelineComponent implements OnInit, OnDestroy {
   thumbUrls = signal<Map<string, string[]>>(new Map());
   tagMap = signal<Map<string, Tag>>(new Map());
   searchQuery = '';
+  viewMode = signal<'timeline' | 'calendar'>(
+    (localStorage.getItem(VIEW_MODE_KEY) as 'timeline' | 'calendar') ?? 'timeline'
+  );
+  calendarYM = signal<{ year: number; month: number }>(this.currentYM());
+  entriesByDate = signal<Map<string, Entry>>(new Map());
   private allEntries: Entry[] = [];
   private objectUrls: string[] = [];
   private searchTimer: any = null;
@@ -43,6 +50,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
     this.tagMap.set(new Map(tags.map(t => [t.id, t])));
     this.searchSvc.buildIndex(all);
     this.groups.set(this.groupByMonth(all));
+    this.entriesByDate.set(new Map(all.map(e => [e.date, e])));
     this.loading.set(false);
     await this.loadThumbnails(all);
   }
@@ -113,4 +121,81 @@ export class TimelineComponent implements OnInit, OnDestroy {
   openEntry(id: string) { this.router.navigate(['/entry', id]); }
   newEntry() { this.router.navigate(['/entry', 'new']); }
   settings() { this.router.navigate(['/settings']); }
+
+  // ---------- Calendar view ----------
+
+  toggleView() {
+    const next = this.viewMode() === 'timeline' ? 'calendar' : 'timeline';
+    this.viewMode.set(next);
+    localStorage.setItem(VIEW_MODE_KEY, next);
+  }
+
+  calendarLabel(): string {
+    const { year, month } = this.calendarYM();
+    return new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  prevMonth() {
+    const { year, month } = this.calendarYM();
+    const d = new Date(year, month - 1, 1);
+    this.calendarYM.set({ year: d.getFullYear(), month: d.getMonth() });
+  }
+
+  nextMonth() {
+    const { year, month } = this.calendarYM();
+    const d = new Date(year, month + 1, 1);
+    this.calendarYM.set({ year: d.getFullYear(), month: d.getMonth() });
+  }
+
+  todayMonth() { this.calendarYM.set(this.currentYM()); }
+
+  calendarCells(): CalendarCell[] {
+    const { year, month } = this.calendarYM();
+    const first = new Date(year, month, 1);
+    const startDay = first.getDay(); // 0=Sun
+    const lastDate = new Date(year, month + 1, 0).getDate();
+    const todayStr = this.todayStr();
+    const map = this.entriesByDate();
+
+    const cells: CalendarCell[] = [];
+    // leading blanks (prev month tail)
+    const prevLast = new Date(year, month, 0).getDate();
+    for (let i = startDay - 1; i >= 0; i--) {
+      const day = prevLast - i;
+      const d = new Date(year, month - 1, day);
+      const dateStr = this.formatDate(d);
+      cells.push({ date: dateStr, day, inMonth: false, isToday: false, entry: map.get(dateStr) });
+    }
+    // current month
+    for (let day = 1; day <= lastDate; day++) {
+      const d = new Date(year, month, day);
+      const dateStr = this.formatDate(d);
+      cells.push({ date: dateStr, day, inMonth: true, isToday: dateStr === todayStr, entry: map.get(dateStr) });
+    }
+    // trailing blanks to fill 6 rows × 7 cols = 42
+    while (cells.length < 42) {
+      const lastCell = cells[cells.length - 1];
+      const d = new Date(lastCell.date + 'T12:00:00');
+      d.setDate(d.getDate() + 1);
+      const dateStr = this.formatDate(d);
+      cells.push({ date: dateStr, day: d.getDate(), inMonth: false, isToday: false, entry: map.get(dateStr) });
+    }
+    return cells;
+  }
+
+  onDayTap(cell: CalendarCell) {
+    if (cell.entry) this.router.navigate(['/entry', cell.entry.id]);
+    else this.router.navigate(['/entry', 'new'], { queryParams: { date: cell.date } });
+  }
+
+  private currentYM() {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  }
+
+  private todayStr(): string { return this.formatDate(new Date()); }
+
+  private formatDate(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 }
