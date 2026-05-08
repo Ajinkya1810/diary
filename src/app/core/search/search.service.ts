@@ -68,7 +68,7 @@ export class SearchService {
       await this.db.searchTokens
         .where('tokens').startsWith(t)
         .each(row => matches.add(row.entryId));
-      result = result === null ? matches : new Set([...result].filter(id => matches.has(id)));
+      result = result === null ? matches : new Set<string>([...result as Set<string>].filter(id => matches.has(id)));
       if (!result.size) return result;
     }
     return result;
@@ -85,7 +85,7 @@ export class SearchService {
       for (const [key, ids] of this.memoryIndex) {
         if (key.startsWith(token)) ids.forEach(id => matches.add(id));
       }
-      result = result === null ? matches : new Set([...result].filter(id => matches.has(id)));
+      result = result === null ? matches : new Set<string>([...result as Set<string>].filter(id => matches.has(id)));
     }
     return result;
   }
