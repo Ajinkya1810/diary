@@ -59,6 +59,16 @@
   border-bottom: 1px solid #3a2a00;
 }
 
+.draft-toast {
+  background: rgba(0,0,0,0.85);
+  color: var(--accent);
+  font-size: 0.8125rem;
+  padding: 8px 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  animation: page-enter 0.3s ease-out;
+}
+
 .form-body {
   padding: 20px 20px 0;
   display: flex;

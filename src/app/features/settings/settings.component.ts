@@ -37,6 +37,13 @@ export class SettingsComponent implements OnInit {
 
   setTheme(t: Theme) { this.themeSvc.set(t); }
 
+  backupReminder(): string | null {
+    const days = this.exportSvc.daysSinceBackup();
+    if (days === null) return 'Never backed up — export soon.';
+    if (days >= 7) return `Last backup ${days}d ago — consider a fresh backup.`;
+    return null;
+  }
+
   async ngOnInit() { await this.reload(); }
 
   private async reload() { this.tags.set(await this.tagSvc.listAll()); }

@@ -48,7 +48,13 @@
 
       <div class="body" [innerHTML]="safeHtml()"></div>
 
-      <div class="edited-info">Edited {{ timeAgo(e.updatedAt) }}</div>
+      <div class="edited-info">
+        @if (wordCount() > 0) {
+          <span>{{ wordCount() }} word{{ wordCount() === 1 ? '' : 's' }} · {{ readingTime() }} min read</span>
+          <span class="dot-sep">·</span>
+        }
+        <span>Edited {{ timeAgo(e.updatedAt) }}</span>
+      </div>
     </div>
   } @else {
     <div class="empty-state">Entry not found.</div>

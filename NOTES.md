@@ -323,6 +323,7 @@ Works if both devices use the same passcode. The backup includes the salt, so `P
 | 1.2.0 | 2026-05-08 | feat: calendar view toggle on timeline. Month grid with mood emoji + color tint per day. Tap day → entry detail or new entry pre-filled with date. Persisted view choice in localStorage |
 | 1.3.0 | 2026-05-08 | feat: audio note recording. MediaRecorder (audio/webm;opus). Max 5min. Mic-icon thumbnail. Encrypted same as other media. Audio player in entry-detail. MediaRecord.type extended with 'audio' |
 | 1.4.0 | 2026-05-08 | feat: theme system (Neon/OLED/Midnight/Sunset). data-theme on <html>, CSS-var swap. ThemeService persists choice. Theme picker in Settings. Page fade-in animation. Improved serif body font stack |
+| 1.5.0 | 2026-05-08 | feat: polish cluster — encrypted draft auto-save (3s), word count + reading time on detail, tag filter on timeline, backup reminder (>7d), SwUpdate auto-prompt banner with periodic 30min check |
 
 ---
 

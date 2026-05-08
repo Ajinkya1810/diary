@@ -10,6 +10,9 @@
   @if (quotaWarning()) {
     <div class="quota-warn">⚠ {{ quotaWarning() }}</div>
   }
+  @if (draftRestored()) {
+    <div class="draft-toast">✓ Draft restored</div>
+  }
 
   <div class="form-body">
     <input class="title-input" type="text" placeholder="Title"

@@ -26,6 +26,7 @@ export class TimelineComponent implements OnInit, OnDestroy {
   loading = signal(true);
   thumbUrls = signal<Map<string, string[]>>(new Map());
   tagMap = signal<Map<string, Tag>>(new Map());
+  filterTagId = signal<string | null>(null);
   searchQuery = '';
   viewMode = signal<'timeline' | 'calendar'>(
     (localStorage.getItem(VIEW_MODE_KEY) as 'timeline' | 'calendar') ?? 'timeline'
@@ -49,10 +50,33 @@ export class TimelineComponent implements OnInit, OnDestroy {
     this.allEntries = all;
     this.tagMap.set(new Map(tags.map(t => [t.id, t])));
     this.searchSvc.buildIndex(all);
-    this.groups.set(this.groupByMonth(all));
+    this.applyFilter();
     this.entriesByDate.set(new Map(all.map(e => [e.date, e])));
     this.loading.set(false);
     await this.loadThumbnails(all);
+  }
+
+  private applyFilter() {
+    const tagId = this.filterTagId();
+    const list = tagId
+      ? this.allEntries.filter(e => (e.tagIds ?? []).includes(tagId))
+      : this.allEntries;
+    this.groups.set(this.groupByMonth(list));
+  }
+
+  toggleTagFilter(tagId: string) {
+    this.filterTagId.set(this.filterTagId() === tagId ? null : tagId);
+    this.applyFilter();
+  }
+
+  clearTagFilter() {
+    this.filterTagId.set(null);
+    this.applyFilter();
+  }
+
+  filterTagName(): string {
+    const id = this.filterTagId();
+    return id ? (this.tagMap().get(id)?.name ?? '') : '';
   }
 
   ngOnDestroy() {

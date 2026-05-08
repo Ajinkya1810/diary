@@ -93,6 +93,20 @@ export class ExportService {
       new Blob([JSON.stringify(backup)], { type: 'application/json' }),
       filename,
     );
+    try { localStorage.setItem('diary.lastBackup', String(Date.now())); } catch { /* ignore */ }
+  }
+
+  lastBackupMs(): number | null {
+    try {
+      const raw = localStorage.getItem('diary.lastBackup');
+      return raw ? +raw : null;
+    } catch { return null; }
+  }
+
+  daysSinceBackup(): number | null {
+    const ts = this.lastBackupMs();
+    if (!ts) return null;
+    return Math.floor((Date.now() - ts) / (24 * 60 * 60 * 1000));
   }
 
   async importBackup(file: File): Promise<void> {

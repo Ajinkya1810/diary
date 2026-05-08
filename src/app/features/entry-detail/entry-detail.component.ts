@@ -89,4 +89,13 @@ export class EntryDetailComponent implements OnInit, OnDestroy {
   moodEmoji(mood: number | null): string { return mood ? MOOD_EMOJI[mood] ?? '' : ''; }
   edit() { this.router.navigate(['/entry', this.entry()!.id, 'edit']); }
   back() { this.router.navigate(['/timeline']); }
+
+  wordCount(): number {
+    const t = this.entry()?.bodyText ?? '';
+    return t.trim() ? t.trim().split(/\s+/).length : 0;
+  }
+
+  readingTime(): number {
+    return Math.max(1, Math.ceil(this.wordCount() / 200));
+  }
 }

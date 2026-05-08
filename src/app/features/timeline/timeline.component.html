@@ -19,6 +19,11 @@
         <button class="search-clear" (click)="clearSearch()" aria-label="Clear">✕</button>
       }
     </div>
+    @if (filterTagId()) {
+      <button class="filter-pill" (click)="clearTagFilter()">
+        Tag: {{ filterTagName() }} <span class="filter-x">✕</span>
+      </button>
+    }
   </div>
   }
 
@@ -109,7 +114,7 @@
       @if (tagsFor(entry).length) {
         <div class="entry-tags">
           @for (tag of tagsFor(entry).slice(0, 4); track tag.id) {
-            <span class="tag-chip">{{ tag.name }}</span>
+            <button class="tag-chip" (click)="toggleTagFilter(tag.id); $event.stopPropagation()">{{ tag.name }}</button>
           }
         </div>
       }

@@ -6,6 +6,7 @@ import { MediaRecord, Tag } from '../../core/db/db.service';
 import { EntryService } from '../../core/entry/entry.service';
 import { MediaService } from '../../core/media/media.service';
 import { TagService } from '../../core/tag/tag.service';
+import { DraftService } from '../../core/draft/draft.service';
 import { EditorComponent } from '../../shared/editor/editor.component';
 
 const MOOD_EMOJI: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
@@ -54,10 +55,15 @@ export class EntryEditComponent implements OnInit, OnDestroy {
   private recordTimer: any = null;
   private readonly MAX_RECORD_SECONDS = 300;
 
+  draftRestored = signal(false);
+  private draftTimer: any = null;
+  private draftSlot = 'new';
+
   constructor(
     private entrySvc: EntryService,
     private mediaSvc: MediaService,
     private tagSvc: TagService,
+    private draftSvc: DraftService,
     private router: Router,
     private route: ActivatedRoute,
   ) {}
@@ -73,6 +79,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     if (id && id !== 'new') {
       this.isEdit = true;
       this.entryId = id;
+      this.draftSlot = id;
       const entry = await this.entrySvc.get(id);
       if (entry) {
         this.title = entry.title;
@@ -92,13 +99,46 @@ export class EntryEditComponent implements OnInit, OnDestroy {
         }
       }
     }
+
+    // Restore draft if present and newer than the persisted entry
+    const draft = await this.draftSvc.load(this.draftSlot);
+    if (draft) {
+      this.title = draft.title;
+      this.date = draft.date;
+      this.bodyHtml = draft.bodyHtml;
+      this.bodyText = draft.bodyText;
+      this.mood = draft.mood;
+      this.selectedTagIds = new Set(draft.tagIds);
+      this.draftRestored.set(true);
+      setTimeout(() => this.draftRestored.set(false), 4000);
+    }
+
     this.loaded.set(true);
     this.checkQuota();
+    this.startDraftAutosave();
+  }
+
+  private startDraftAutosave() {
+    this.draftTimer = setInterval(() => this.saveDraft(), 3000);
+  }
+
+  private async saveDraft() {
+    if (!this.loaded() || this.saving()) return;
+    await this.draftSvc.save(this.draftSlot, {
+      title: this.title,
+      date: this.date,
+      bodyHtml: this.bodyHtml,
+      bodyText: this.bodyText,
+      mood: this.mood,
+      tagIds: [...this.selectedTagIds],
+      ts: Date.now(),
+    });
   }
 
   ngOnDestroy() {
     this.pendingMedia.forEach(p => URL.revokeObjectURL(p.previewUrl));
     this.ownedUrls.forEach(u => URL.revokeObjectURL(u));
+    if (this.draftTimer) clearInterval(this.draftTimer);
     this.cleanupRecording();
   }
 
@@ -238,6 +278,8 @@ export class EntryEditComponent implements OnInit, OnDestroy {
         try { await this.mediaSvc.addMedia(entryId!, p.file); }
         catch (e: any) { this.mediaError.set(e.message ?? 'Failed to save media.'); }
       }
+      this.draftSvc.clear(this.draftSlot);
+      if (this.draftSlot === 'new' && entryId) this.draftSvc.clear(entryId);
       this.router.navigate(['/entry', entryId]);
     } catch {
       this.saving.set(false);
@@ -250,6 +292,7 @@ export class EntryEditComponent implements OnInit, OnDestroy {
     const media = await this.mediaSvc.getEntryMedia(this.entryId);
     for (const m of media) await this.mediaSvc.deleteMedia(m, this.entryId);
     await this.entrySvc.delete(this.entryId);
+    this.draftSvc.clear(this.entryId);
     this.router.navigate(['/timeline']);
   }
 

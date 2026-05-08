@@ -93,6 +93,12 @@
   font-size: 0.75rem;
   color: var(--text-3);
   letter-spacing: 0.04em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+
+  .dot-sep { opacity: 0.5; }
 }
 
 .media-grid {

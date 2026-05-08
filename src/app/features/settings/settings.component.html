@@ -29,6 +29,9 @@
   <!-- Backup & Export -->
   <div class="section">
     <div class="section-label">Backup &amp; Export</div>
+    @if (backupReminder()) {
+      <div class="backup-reminder">⚠ {{ backupReminder() }}</div>
+    }
 
     <div class="action-row">
       <div class="action-info">
