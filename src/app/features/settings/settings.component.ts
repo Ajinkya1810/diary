@@ -5,7 +5,6 @@ import { CommonModule } from '@angular/common';
 import { Tag } from '../../core/db/db.service';
 import { TagService } from '../../core/tag/tag.service';
 import { ExportService } from '../../core/export/export.service';
-import { ThemeService, Theme } from '../../core/theme/theme.service';
 import { ThemeToggleComponent } from '../../shared/theme-toggle/theme-toggle.component';
 import { BUILD_LABEL } from '../../version';
 
@@ -32,11 +31,8 @@ export class SettingsComponent implements OnInit {
   constructor(
     private tagSvc: TagService,
     private exportSvc: ExportService,
-    public themeSvc: ThemeService,
     private router: Router,
   ) {}
-
-  setTheme(t: Theme) { this.themeSvc.set(t); }
 
   backupReminder(): string | null {
     const days = this.exportSvc.daysSinceBackup();

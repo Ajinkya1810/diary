@@ -243,39 +243,3 @@
   margin-bottom: 10px;
 }
 
-.theme-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.theme-card {
-  position: relative;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  padding: 18px 14px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  color: var(--text-2);
-  transition: transform 0.15s, border-color 0.2s;
-
-  &:hover { transform: translateY(-1px); }
-  &.selected { color: var(--text); }
-
-  .theme-swatch {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 0 14px currentColor;
-    color: inherit;
-  }
-
-  .theme-name {
-    font-size: 0.875rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-  }
-}
